@@ -1,6 +1,7 @@
 import React from 'react';
+import 'bootstrap/dist/css/bootstrap.min.css';
 import Homepage from './Homepage'; // Import the HomePage component
-import './App.css';
+//import './App.css';
 
 function App() {
   return (
