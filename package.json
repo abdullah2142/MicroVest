@@ -1,0 +1,18 @@
+{
+  "name": "microvest",
+  "version": "1.0.0",
+  "description": "MicroVest Project",
+  "main": "index.js",
+  "scripts": {
+    "start": "node backend/server.js",
+    "dev": "nodemon backend/server.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "lucide-react": "^0.515.0",
+    "react-router-dom": "^7.6.2"
+  }
+}
