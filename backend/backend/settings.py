@@ -80,7 +80,7 @@ DATABASES = {
         'ENGINE': 'django.db.backends.mysql',
         'NAME': 'microvest_db', # Make sure this DB exists in XAMPP phpMyAdmin
         'USER': 'root',
-        'PASSWORD': '', # Default XAMPP root password is empty
+        'PASSWORD': 'Qwerty30?', # Default XAMPP root password is empty
         'HOST': '127.0.0.1', # Crucial for direct TCP/IP connection over socket
         'PORT': '3306',
         'OPTIONS': {
