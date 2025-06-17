@@ -1,3 +1,4 @@
+{# MicroVest/users/templates/users/profile.html #}
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -28,12 +29,42 @@
             display: inline-block;
             width: 120px; /* Align labels */
         }
+        .profile-actions { margin-top: 25px; }
+        .profile-actions a {
+            display: inline-block;
+            margin-right: 15px;
+            padding: 10px 15px;
+            background-color: #007bff;
+            color: white;
+            border-radius: 5px;
+            text-decoration: none;
+        }
+        .profile-actions a:hover { background-color: #0056b3; }
+
+        .edit-profile
+        {
+            padding: 10px 20px;
+            font-size: 1rem;
+            background-color: #007bff;
+            color: white;
+            border: 0px none;
+            border-radius: 5px;
+            margin: 30px 0px;
+        }
+
+        .edit-profile:hover
+        {
+            background-color: #0056b3;
+            text-decoration: none;
+        }
     </style>
 </head>
 <body>
     <div class="container">
         <h2>Welcome, {{ user.username }}!</h2>
         <p>This is your profile page. Only logged-in users can see this content.</p>
+        <br>
+        <a class="edit-profile" href="{% url 'edit_profile' %}">Edit your profile</a>
 
         <div class="profile-details">
             <h3>Your Details:</h3>
@@ -47,6 +78,12 @@
             {% if user.id_document_url %}<p><strong>ID Document:</strong> <a href="{{ user.id_document_url }}" target="_blank">View Document</a></p>{% endif %}
             <p><strong>Last Login:</strong> {{ user.last_login|date:"F j, Y, H:i" }}</p>
             <p><strong>Member Since:</strong> {{ user.date_joined|date:"F j, Y" }}</p>
+        </div>
+
+        <div class="profile-actions">
+            <a href="{% url 'friend_requests' %}">Friend Requests & Friends</a>
+            <a href="{% url 'messages_list' %}">My Messages</a> 
+            <a href="{% url 'browse_businesses' %}">Browse Businesses</a>
         </div>
 
         <p style="margin-top: 20px;"><a href="{% url 'logout' %}">Log Out</a></p>
