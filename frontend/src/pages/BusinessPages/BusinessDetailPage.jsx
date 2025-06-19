@@ -1,83 +1,48 @@
-"use client"
-
-import { useState } from "react"
-import { useParams, useNavigate } from "react-router-dom"
-import Header from "../../components/Header2"
-
-// Sample business data - this would come from your database/API
-const businessData = {
-  id: 1,
-  title: "Green Coffee Roastery",
-  tagline: "Sustainable coffee roasting for a better tomorrow",
-  description:
-    "Sustainable coffee roasting business expanding to new locations with a focus on direct trade relationships and environmentally conscious practices.",
-  category: "Food & Beverage",
-  location: "Portland, OR",
-  fundingGoal: 50000,
-  currentFunding: 32500,
-  backers: 127,
-  daysLeft: 23,
-  minInvestment: 100,
-  expectedReturn: "12-15%",
-  teamSize: 8,
-  website: "https://greencoffeeroastery.com",
-  socialMedia: "@greencoffeepdx",
-
-  // Detailed information
-  businessPlan:
-    "Green Coffee Roastery aims to revolutionize the local coffee scene by establishing direct relationships with coffee farmers and implementing sustainable roasting practices. Our business model focuses on premium quality, ethical sourcing, and community engagement. We plan to expand from our current single location to three locations across Portland within the next two years, while maintaining our commitment to sustainability and quality.",
-
-  financialProjections:
-    "Year 1: $180,000 revenue with 15% profit margin. Year 2: $320,000 revenue with 22% profit margin. Year 3: $480,000 revenue with 28% profit margin. Break-even expected within 8 months of funding. Monthly recurring revenue from subscription services projected at $15,000 by end of Year 1.",
-
-  marketAnalysis:
-    "The specialty coffee market in Portland is valued at $45M annually with 8% year-over-year growth. Our target demographic includes environmentally conscious consumers aged 25-45 with household incomes above $50,000. Market research shows 73% of local consumers are willing to pay premium prices for sustainably sourced coffee.",
-
-  competitiveAdvantage:
-    "Direct trade relationships with farmers, proprietary roasting techniques, strong local brand recognition, and commitment to sustainability. Our unique subscription model and community engagement programs differentiate us from larger chains. We've already established partnerships with 12 local restaurants and cafes.",
-
-  useOfFunds:
-    "Equipment and facility expansion (40% - $20,000), Inventory and raw materials (25% - $12,500), Marketing and branding (20% - $10,000), Working capital (10% - $5,000), Legal and administrative (5% - $2,500)",
-
-  // Media files
-  images: [
-    "https://images.unsplash.com/photo-1447933601403-0c6688de566e?w=600&h=400&fit=crop",
-    "https://images.unsplash.com/photo-1495474472287-4d71bcdd2085?w=600&h=400&fit=crop",
-    "https://images.unsplash.com/photo-1501339847302-ac426a4a7cbb?w=600&h=400&fit=crop",
-    "https://images.unsplash.com/photo-1442512595331-e89e73853f31?w=600&h=400&fit=crop",
-  ],
-
-  videos: [
-    {
-      title: "Business Pitch Video",
-      thumbnail: "https://images.unsplash.com/photo-1447933601403-0c6688de566e?w=300&h=200&fit=crop",
-      duration: "3:45",
-    },
-    {
-      title: "Behind the Scenes",
-      thumbnail: "https://images.unsplash.com/photo-1495474472287-4d71bcdd2085?w=300&h=200&fit=crop",
-      duration: "2:20",
-    },
-  ],
-
-  documents: [
-    { name: "Business Plan.pdf", size: "2.4 MB" },
-    { name: "Financial Projections.xlsx", size: "1.8 MB" },
-    { name: "Market Research.pdf", size: "3.2 MB" },
-  ],
-}
+import { useState, useEffect } from "react";
+import { useParams, useNavigate } from "react-router-dom";
+import Header from "../../components/Header2";
 
 export default function BusinessDetailPage() {
-  const { id } = useParams()
-  const navigate = useNavigate()
-  const [currentImageIndex, setCurrentImageIndex] = useState(0)
-  const [investmentAmount, setInvestmentAmount] = useState(businessData.minInvestment)
-  const [activeTab, setActiveTab] = useState("overview")
-  const [isLiked, setIsLiked] = useState(false)
+  const { id } = useParams();
+  const navigate = useNavigate();
+  const [businessData, setBusinessData] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  const [currentImageIndex, setCurrentImageIndex] = useState(0);
+  const [investmentAmount, setInvestmentAmount] = useState(0);
+  const [activeTab, setActiveTab] = useState("overview");
+  // Removed isLiked state as liking feature is removed
+  // const [isLiked, setIsLiked] = useState(false);
+
+  // Placeholder for user type.
+  const isEntrepreneur = (businessData && businessData.id === 1); // Example logic
+
+  useEffect(() => {
+    const fetchBusinessDetails = async () => {
+      setLoading(true);
+      setError(null);
+      try {
+        const response = await fetch(`http://localhost:8000/api/businesses/${id}/`);
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        const data = await response.json();
+        setBusinessData(data);
+        setInvestmentAmount(data.min_investment || 0);
+      } catch (e) {
+        setError("Failed to fetch business details: " + e.message);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchBusinessDetails();
+  }, [id]);
 
   const calculateProgress = (current, goal) => {
-    return Math.min((current / goal) * 100, 100)
-  }
+    return Math.min((current / goal) * 100, 100);
+  };
 
   const formatCurrency = (amount) => {
     return new Intl.NumberFormat("en-US", {
@@ -85,37 +50,138 @@ export default function BusinessDetailPage() {
       currency: "USD",
       minimumFractionDigits: 0,
       maximumFractionDigits: 0,
-    }).format(amount)
-  }
+    }).format(amount);
+  };
 
   const nextImage = () => {
-    setCurrentImageIndex((prev) => (prev + 1) % businessData.images.length)
-  }
+    if (businessData && businessData.images && businessData.images.length > 0) {
+      setCurrentImageIndex((prev) => (prev + 1) % businessData.images.length);
+    }
+  };
 
   const prevImage = () => {
-    setCurrentImageIndex((prev) => (prev - 1 + businessData.images.length) % businessData.images.length)
-  }
+    if (businessData && businessData.images && businessData.images.length > 0) {
+      setCurrentImageIndex((prev) => (prev - 1 + businessData.images.length) % businessData.images.length);
+    }
+  };
 
-  const handleInvest = () => {
-    alert(`Investment of ${formatCurrency(investmentAmount)} submitted! You will be redirected to the payment page.`)
-  }
+  const handleInvest = async () => {
+    // 1. Basic validation (can be more robust)
+    if (investmentAmount <= 0) {
+        alert("Please enter a positive investment amount.");
+        return;
+    }
+
+    // Ensure investment does not exceed remaining goal (frontend check)
+    const remainingGoal = businessData.funding_goal - businessData.current_funding;
+    if (investmentAmount > remainingGoal) {
+        alert(`Your investment of ${formatCurrency(investmentAmount)} exceeds the remaining funding goal of ${formatCurrency(remainingGoal)}. Please invest ${formatCurrency(remainingGoal)} or less.`);
+        // Optionally, reset investmentAmount to remainingGoal
+        setInvestmentAmount(remainingGoal);
+        return;
+    }
+
+
+    alert(`Submitting investment of ${formatCurrency(investmentAmount)} for ${businessData.title}...`);
+
+    try {
+        const response = await fetch('http://localhost:8000/api/invest/', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                // If you add authentication later (e.g., JWT), you'd add:
+                // 'Authorization': `Bearer YOUR_AUTH_TOKEN`
+            },
+            body: JSON.stringify({
+                business_id: businessData.id,
+                investment_amount: investmentAmount,
+            }),
+        });
+
+        if (!response.ok) {
+            const errorData = await response.json();
+            // Display backend validation errors (e.g., investment exceeds goal)
+            console.error("Investment failed:", errorData);
+            alert(`Investment failed: ${JSON.stringify(errorData)}`);
+            return;
+        }
+
+        const updatedBusiness = await response.json();
+        console.log("Investment successful:", updatedBusiness);
+
+        // Update the local state with the new funding and backer count
+        setBusinessData(prevData => ({
+            ...prevData,
+            current_funding: updatedBusiness.current_funding,
+            backers: updatedBusiness.backers,
+            // funding_goal: updatedBusiness.funding_goal // Goal should remain the same
+        }));
+
+        alert(`Investment of ${formatCurrency(investmentAmount)} successful! Thank you for backing ${businessData.title}!`);
+
+        // Optional: Reset investment amount or clear input
+        // setInvestmentAmount(businessData.min_investment || 0);
+
+    } catch (error) {
+        console.error("Network or unexpected error during investment:", error);
+        alert("An error occurred while processing your investment. Please try again.");
+    }
+};
+
+  const handleDelete = async () => {
+    if (window.confirm("Are you sure you want to delete this business? This action cannot be undone.")) {
+      try {
+        const response = await fetch(`http://localhost:8000/api/businesses/${id}/delete/`, {
+          method: 'DELETE',
+        });
+
+        if (response.ok) {
+          console.log(`Business with ID ${id} deleted successfully`);
+          alert("Business deleted successfully.");
+          navigate('/catalogue'); // Redirect back to the catalogue page
+        } else {
+          const errorData = await response.json();
+          console.error("Error deleting business:", errorData);
+          alert(`Failed to delete business: ${JSON.stringify(errorData)}`);
+        }
+      } catch (error) {
+        console.error("Network error while deleting business:", error);
+        alert("An error occurred while trying to delete the business.");
+      }
+    }
+  };
+
+  const handleGoToDashboard = () => {
+    alert("Navigating to entrepreneur dashboard (logic to be implemented).");
+    // navigate('/entrepreneur-dashboard');
+  };
 
   const tabs = [
     { id: "overview", label: "Overview" },
     { id: "financials", label: "Financials" },
     { id: "market", label: "Market Analysis" },
     { id: "team", label: "Team & Documents" },
-  ]
+  ];
+
+  if (loading) {
+    return <div className="min-h-screen bg-black text-white text-center py-12">Loading business details...</div>;
+  }
+
+  if (error) {
+    return <div className="min-h-screen bg-black text-red-500 text-center py-12">{error}</div>;
+  }
+
+  if (!businessData) {
+    return <div className="min-h-screen bg-black text-white text-center py-12">Business not found.</div>;
+  }
 
   return (
     <div className="min-h-screen bg-black">
       <Header />
 
-      {/* Main Content */}
       <main className="container mx-auto px-4 py-8">
-        {/* Back Button */}
-        <div className="mb-6">
-          <button 
+        <div className="mb-6 flex justify-between items-center">
+          <button
             onClick={() => navigate('/catalogue')}
             className="flex items-center text-gray-300 hover:text-white transition-colors"
           >
@@ -124,16 +190,23 @@ export default function BusinessDetailPage() {
             </svg>
             Back to Catalogue
           </button>
+
+          <button
+            onClick={handleDelete}
+            className="bg-red-600 hover:bg-red-700 text-white font-semibold py-2 px-4 rounded-md transition-colors"
+          >
+            Delete Business
+          </button>
         </div>
 
+        {/* Main Content Area (now includes Quick Facts within the first column) */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          {/* Main Content */}
           <div className="lg:col-span-2 space-y-8">
-            {/* Hero Section */}
+            {/* Hero Section - now contains Quick Facts */}
             <div className="bg-gray-900 rounded-lg border border-gray-700 overflow-hidden">
               <div className="relative">
                 <img
-                  src={businessData.images[currentImageIndex] || "/placeholder.svg"}
+                  src={businessData.images[currentImageIndex]?.image_url || "/placeholder.svg"}
                   alt={businessData.title}
                   className="w-full h-64 md:h-80 object-cover"
                 />
@@ -165,6 +238,8 @@ export default function BusinessDetailPage() {
                   </span>
                 </div>
 
+                {/* Removed Liking and Sharing buttons */}
+                {/*
                 <div className="absolute top-4 right-4 flex space-x-2">
                   <button
                     onClick={() => setIsLiked(!isLiked)}
@@ -197,61 +272,92 @@ export default function BusinessDetailPage() {
                     </svg>
                   </button>
                 </div>
+                */}
               </div>
 
               <div className="p-6">
-                <h1 className="text-3xl font-bold text-white mb-2">{businessData.title}</h1>
-                <p className="text-xl text-gray-300 mb-4">{businessData.tagline}</p>
+                {/* Content Wrapper for flex layout */}
+                <div className="flex flex-col lg:flex-row lg:space-x-8">
+                  {/* Left part of Hero (Title, Tagline, Location, Team, Website, Description) */}
+                  <div className="lg:w-2/3"> {/* Adjust width as needed */}
+                    <h1 className="text-3xl font-bold text-white mb-2">{businessData.title}</h1>
+                    <p className="text-xl text-gray-300 mb-4">{businessData.tagline}</p>
 
-                <div className="flex flex-wrap items-center gap-4 text-sm text-gray-400 mb-6">
-                  <div className="flex items-center">
-                    <svg className="h-4 w-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"
-                      />
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"
-                      />
-                    </svg>
-                    {businessData.location}
+                    <div className="flex flex-wrap items-center gap-4 text-sm text-gray-400 mb-6">
+                      <div className="flex items-center">
+                        <svg className="h-4 w-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"
+                          />
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"
+                          />
+                        </svg>
+                        {businessData.location}
+                      </div>
+                      <div className="flex items-center">
+                        <svg className="h-4 w-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0z"
+                          />
+                        </svg>
+                        {businessData.team_size} team members
+                      </div>
+                      <div className="flex items-center">
+                        <svg className="h-4 w-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9v-9m0-9v9"
+                          />
+                        </svg>
+                        <a href={businessData.website} className="hover:text-white transition-colors">
+                          Website
+                        </a>
+                      </div>
+                    </div>
+                    <p className="text-gray-300 leading-relaxed">{businessData.description}</p>
                   </div>
-                  <div className="flex items-center">
-                    <svg className="h-4 w-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0z"
-                      />
-                    </svg>
-                    {businessData.teamSize} team members
-                  </div>
-                  <div className="flex items-center">
-                    <svg className="h-4 w-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9v-9m0-9v9"
-                      />
-                    </svg>
-                    <a href={businessData.website} className="hover:text-white transition-colors">
-                      Website
-                    </a>
-                  </div>
-                </div>
 
-                <p className="text-gray-300 leading-relaxed">{businessData.description}</p>
+                  {/* Right part of Hero: Quick Facts */}
+                  <div className="lg:w-1/3 mt-6 lg:mt-0"> {/* Adjust width and margin */}
+                    <div className="bg-gray-800 p-4 rounded-lg border border-gray-600"> {/* Inner card styling */}
+                      <h3 className="text-white font-semibold mb-4">Quick Facts</h3>
+                      <div className="space-y-3 text-sm">
+                        <div className="flex justify-between">
+                          <span className="text-gray-400">Category</span>
+                          <span className="text-white">{businessData.category}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-gray-400">Location</span>
+                          <span className="text-white">{businessData.location}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-gray-400">Team Size</span>
+                          <span className="text-white">{businessData.team_size} people</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-gray-400">Social Media</span>
+                          <span className="text-white">{businessData.social_media}</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div> {/* End Content Wrapper */}
               </div>
             </div>
 
-            {/* Tabs */}
+            {/* Tabs Section - remains as is */}
             <div className="bg-gray-900 rounded-lg border border-gray-700">
               <div className="border-b border-gray-700">
                 <nav className="flex space-x-8 px-6">
@@ -276,17 +382,17 @@ export default function BusinessDetailPage() {
                   <div className="space-y-6">
                     <div>
                       <h3 className="text-xl font-semibold text-white mb-3">Business Plan</h3>
-                      <p className="text-gray-300 leading-relaxed">{businessData.businessPlan}</p>
+                      <p className="text-gray-300 leading-relaxed">{businessData.business_plan}</p>
                     </div>
 
                     <div>
                       <h3 className="text-xl font-semibold text-white mb-3">Competitive Advantage</h3>
-                      <p className="text-gray-300 leading-relaxed">{businessData.competitiveAdvantage}</p>
+                      <p className="text-gray-300 leading-relaxed">{businessData.competitive_advantage}</p>
                     </div>
 
                     <div>
                       <h3 className="text-xl font-semibold text-white mb-3">Use of Funds</h3>
-                      <p className="text-gray-300 leading-relaxed">{businessData.useOfFunds}</p>
+                      <p className="text-gray-300 leading-relaxed">{businessData.use_of_funds}</p>
                     </div>
                   </div>
                 )}
@@ -295,17 +401,13 @@ export default function BusinessDetailPage() {
                   <div className="space-y-6">
                     <div>
                       <h3 className="text-xl font-semibold text-white mb-3">Financial Projections</h3>
-                      <p className="text-gray-300 leading-relaxed">{businessData.financialProjections}</p>
+                      <p className="text-gray-300 leading-relaxed">{businessData.financial_projections}</p>
                     </div>
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div className="bg-gray-800 p-4 rounded-lg">
-                        <h4 className="text-white font-medium mb-2">Expected Return</h4>
-                        <p className="text-2xl font-bold text-green-400">{businessData.expectedReturn}</p>
-                      </div>
-                      <div className="bg-gray-800 p-4 rounded-lg">
                         <h4 className="text-white font-medium mb-2">Minimum Investment</h4>
-                        <p className="text-2xl font-bold text-white">{formatCurrency(businessData.minInvestment)}</p>
+                        <p className="text-2xl font-bold text-white">{formatCurrency(businessData.min_investment)}</p>
                       </div>
                     </div>
                   </div>
@@ -314,7 +416,7 @@ export default function BusinessDetailPage() {
                 {activeTab === "market" && (
                   <div>
                     <h3 className="text-xl font-semibold text-white mb-3">Market Analysis</h3>
-                    <p className="text-gray-300 leading-relaxed">{businessData.marketAnalysis}</p>
+                    <p className="text-gray-300 leading-relaxed">{businessData.market_analysis}</p>
                   </div>
                 )}
 
@@ -325,22 +427,24 @@ export default function BusinessDetailPage() {
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         {businessData.videos.map((video, index) => (
                           <div key={index} className="relative bg-gray-800 rounded-lg overflow-hidden">
-                            <img
-                              src={video.thumbnail || "/placeholder.svg"}
-                              alt={video.title}
-                              className="w-full h-32 object-cover"
-                            />
-                            <div className="absolute inset-0 flex items-center justify-center">
-                              <button className="bg-white bg-opacity-90 text-black p-3 rounded-full hover:bg-opacity-100 transition-all">
-                                <svg className="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                  <polygon points="5,3 19,12 5,21"></polygon>
-                                </svg>
-                              </button>
-                            </div>
-                            <div className="p-3">
-                              <h4 className="text-white font-medium">{video.title}</h4>
-                              <p className="text-gray-400 text-sm">{video.duration}</p>
-                            </div>
+                            {video.video_file_url ? ( // Check if video URL exists
+                                <video
+                                  controls // Adds default browser controls (play/pause, volume, fullscreen)
+                                  poster={video.thumbnail_url || "/placeholder.svg"} // Use thumbnail as poster image
+                                  className="w-full h-32 object-cover" // Maintain responsive sizing
+                                >
+                                  <source src={video.video_file_url} type="video/mp4" /> {/* Assuming MP4 format */}
+                                  {/* Add other source types if you expect different video formats */}
+                                  Your browser does not support the video tag.
+                                </video>
+                                  ) : (
+                                    // Fallback if no video URL
+                                    <img
+                                      src={video.thumbnail_url || "/placeholder.svg"}
+                                      alt={video.title}
+                                      className="w-full h-32 object-cover"
+                                    />
+                                  )}
                           </div>
                         ))}
                       </div>
@@ -366,11 +470,11 @@ export default function BusinessDetailPage() {
                                 />
                               </svg>
                               <div>
-                                <p className="text-white font-medium">{doc.name}</p>
-                                <p className="text-gray-400 text-sm">{doc.size}</p>
+                                <p className="text-sm text-white">{doc.name}</p>
+                                <p className="text-xs text-gray-400">{doc.size}</p>
                               </div>
                             </div>
-                            <button className="text-gray-400 hover:text-white transition-colors">
+                            <a href={doc.file_url} target="_blank" rel="noopener noreferrer" className="text-gray-400 hover:text-white transition-colors">
                               <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path
                                   strokeLinecap="round"
@@ -379,7 +483,7 @@ export default function BusinessDetailPage() {
                                   d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
                                 />
                               </svg>
-                            </button>
+                            </a>
                           </div>
                         ))}
                       </div>
@@ -390,38 +494,34 @@ export default function BusinessDetailPage() {
             </div>
           </div>
 
-          {/* Sidebar */}
-          <div className="space-y-6">
-            {/* Investment Card */}
-            <div className="bg-gray-900 p-6 rounded-lg border border-gray-700 sticky top-24">
+          {/* Right Column: Only for the Invest Now Card */}
+          <div className="lg:col-span-1 space-y-6"> {/* Keep space-y-6 in case you add other cards later */}
+            {/* Investment Card - Scrolling, strictly to the right */}
+            <div className="bg-gray-900 p-6 rounded-lg border border-gray-700"> {/* Removed all positioning classes */}
               <div className="space-y-4">
                 <div className="flex justify-between items-center">
                   <span className="text-gray-300">Progress</span>
                   <span className="text-white font-medium">
-                    {Math.round(calculateProgress(businessData.currentFunding, businessData.fundingGoal))}%
+                    {Math.round(calculateProgress(businessData.current_funding, businessData.funding_goal))}%
                   </span>
                 </div>
 
                 <div className="w-full bg-gray-700 rounded-full h-3">
                   <div
                     className="bg-white h-3 rounded-full transition-all duration-300"
-                    style={{ width: `${calculateProgress(businessData.currentFunding, businessData.fundingGoal)}%` }}
+                    style={{ width: `${calculateProgress(businessData.current_funding, businessData.funding_goal)}%` }}
                   ></div>
                 </div>
 
                 <div className="flex justify-between text-sm">
-                  <span className="font-medium text-white">{formatCurrency(businessData.currentFunding)}</span>
-                  <span className="text-gray-300">of {formatCurrency(businessData.fundingGoal)}</span>
+                  <span className="font-medium text-white">{formatCurrency(businessData.current_funding)}</span>
+                  <span className="text-gray-300">of {formatCurrency(businessData.funding_goal)}</span>
                 </div>
 
                 <div className="grid grid-cols-2 gap-4 pt-4 border-t border-gray-700">
                   <div>
                     <p className="text-gray-400 text-sm">Backers</p>
                     <p className="text-white font-semibold">{businessData.backers}</p>
-                  </div>
-                  <div>
-                    <p className="text-gray-400 text-sm">Days Left</p>
-                    <p className="text-white font-semibold">{businessData.daysLeft}</p>
                   </div>
                 </div>
 
@@ -433,55 +533,34 @@ export default function BusinessDetailPage() {
                       type="number"
                       value={investmentAmount}
                       onChange={(e) => setInvestmentAmount(Number(e.target.value))}
-                      min={businessData.minInvestment}
-                      className="flex-1 bg-gray-800 border border-gray-600 rounded-md p-2 text-white focus:border-white focus:outline-none"
+                      min={businessData.min_investment}
+                      className="flex-1 bg-gray-800 border border-gray-600 rounded-md p-2 text-white placeholder-gray-400 focus:border-white focus:outline-none"
                     />
                   </div>
-                  <p className="text-gray-400 text-xs mt-1">Minimum: {formatCurrency(businessData.minInvestment)}</p>
+                  <p className="text-gray-400 text-xs mt-1">Minimum: {formatCurrency(businessData.min_investment)}</p>
                 </div>
 
-                <button
-                  onClick={handleInvest}
-                  className="w-full bg-white text-black py-3 rounded-md font-semibold hover:bg-gray-200 transition-colors"
-                >
-                  Invest Now
-                </button>
-
-                <div className="text-center">
-                  <p className="text-gray-400 text-xs">
-                    Expected return: <span className="text-green-400 font-medium">{businessData.expectedReturn}</span>
-                  </p>
-                </div>
-              </div>
-            </div>
-
-            {/* Additional Info */}
-            <div className="bg-gray-900 p-6 rounded-lg border border-gray-700">
-              <h3 className="text-white font-semibold mb-4">Quick Facts</h3>
-              <div className="space-y-3 text-sm">
-                <div className="flex justify-between">
-                  <span className="text-gray-400">Category</span>
-                  <span className="text-white">{businessData.category}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-gray-400">Location</span>
-                  <span className="text-white">{businessData.location}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-gray-400">Team Size</span>
-                  <span className="text-white">{businessData.teamSize} people</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-gray-400">Social Media</span>
-                  <span className="text-white">{businessData.socialMedia}</span>
-                </div>
+                {isEntrepreneur ? (
+                  <button
+                    onClick={handleGoToDashboard}
+                    className="w-full bg-blue-600 text-white py-3 rounded-md font-semibold hover:bg-blue-700 transition-colors"
+                  >
+                    Go to Your Dashboard
+                  </button>
+                ) : (
+                  <button
+                    onClick={handleInvest}
+                    className="w-full bg-white text-black py-3 rounded-md font-semibold hover:bg-gray-200 transition-colors"
+                  >
+                    Invest Now
+                  </button>
+                )}
               </div>
             </div>
           </div>
         </div>
       </main>
 
-      {/* Footer */}
       <footer className="border-t border-gray-800 bg-gray-900 mt-16">
         <div className="container mx-auto px-4 py-8">
           <div className="text-center text-gray-300">
@@ -490,5 +569,5 @@ export default function BusinessDetailPage() {
         </div>
       </footer>
     </div>
-  )
+  );
 }

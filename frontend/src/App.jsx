@@ -20,7 +20,7 @@ function App() {
       <Route path='/consultant' element={<ConsultantPage />} />
       <Route path='/messaging' element={<MessagingPage />} />
       <Route path='/catalogue' element={<CataloguePage />} />
-      <Route path='/business-detail/' element={<BusinessDetailPage />} />
+      <Route path='/business-detail/:id' element={<BusinessDetailPage />} />
       <Route path='/business-pitch' element={<BusinessPitchPage />} />
       <Route path='/entrepreneur-dashboard' element={<EntrepreneurDashboard />} />
       <Route path='/investor-dashboard' element={<InvestorDashboard />} />

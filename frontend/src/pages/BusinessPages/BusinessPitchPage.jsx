@@ -1,3 +1,4 @@
+// BusinessPitchPage.jsx
 "use client"
 
 import { useState } from "react"
@@ -16,22 +17,21 @@ const categories = [
 
 export default function BusinessPitchPage() {
   const [formData, setFormData] = useState({
-    businessName: "",
+    businessName: "", // Maps to 'title' in backend
     tagline: "",
     description: "",
     category: "",
     location: "",
-    fundingGoal: "",
-    minInvestment: "",
-    expectedReturn: "",
-    teamSize: "",
+    fundingGoal: "", // Maps to 'funding_goal'
+    minInvestment: "", // Maps to 'min_investment'
+    teamSize: "", // Maps to 'team_size'
     website: "",
     socialMedia: "",
-    businessPlan: "",
-    financialProjections: "",
-    marketAnalysis: "",
-    competitiveAdvantage: "",
-    useOfFunds: "",
+    businessPlan: "", // Maps to 'business_plan'
+    financialProjections: "", // Maps to 'financial_projections'
+    marketAnalysis: "", // Maps to 'market_analysis'
+    competitiveAdvantage: "", // Maps to 'competitive_advantage'
+    useOfFunds: "", // Maps to 'use_of_funds'
   })
 
   const [uploadedFiles, setUploadedFiles] = useState({
@@ -92,7 +92,7 @@ export default function BusinessPitchPage() {
       [type]: [
         ...prev[type],
         ...validFiles.map((file) => ({
-          file,
+          file, // Store the actual File object
           name: file.name,
           size: file.size,
           id: Math.random().toString(36).substr(2, 9),
@@ -116,12 +116,114 @@ export default function BusinessPitchPage() {
     return Number.parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + " " + sizes[i]
   }
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault()
-    console.log("Form Data:", formData)
-    console.log("Uploaded Files:", uploadedFiles)
-    alert("Pitch submitted successfully! We will review your submission and get back to you within 48 hours.")
+
+    const data = new FormData()
+
+    // Append form data fields, mapping frontend names to backend model names
+    data.append("title", formData.businessName)
+    data.append("tagline", formData.tagline)
+    data.append("description", formData.description)
+    data.append("category", formData.category)
+    data.append("location", formData.location)
+    data.append("funding_goal", formData.fundingGoal)
+    data.append("min_investment", formData.minInvestment)
+    data.append("team_size", formData.teamSize)
+    data.append("website", formData.website)
+    data.append("social_media", formData.socialMedia)
+    data.append("business_plan", formData.businessPlan)
+    data.append("financial_projections", formData.financialProjections)
+    data.append("market_analysis", formData.marketAnalysis)
+    data.append("competitive_advantage", formData.competitiveAdvantage)
+    data.append("use_of_funds", formData.useOfFunds)
+
+    // Append uploaded files
+    uploadedFiles.images.forEach((item, index) => {
+      // For nested writable serializers, DRF expects array-like naming for files and other nested fields
+      // Example: images[0]image, images[0]order, images[1]image
+      data.append(`images[${index}]image`, item.file)
+      //data.append(`images[${index}]order`, index) // Ensure order is sent
+    })
+
+    uploadedFiles.videos.forEach((item, index) => {
+      data.append(`videos[${index}]title`, item.name) // Using filename as title for simplicity
+      data.append(`videos[${index}]video_file`, item.file)
+      // Assuming you don't have a separate thumbnail file, you might extract a frame or let backend generate
+      // For now, if no explicit thumbnail is uploaded, you can omit or send placeholder
+      // If the frontend also allows uploading thumbnail separately, you'd add:
+      data.append(`videos[${index}]thumbnail`, item.thumbnailFile || '')
+      data.append(`videos[${index}]duration`, "0:00") // Placeholder, should be derived from video
+    })
+
+    uploadedFiles.documents.forEach((item, index) => {
+      data.append(`documents[${index}]name`, item.name)
+      data.append(`documents[${index}]document_file`, item.file)
+      data.append(`documents[${index}]size`, formatFileSize(item.size))
+    })
+
+    try {
+      const response = await fetch("http://localhost:8000/api/businesses/pitch/", {
+        method: "POST",
+        body: data, // FormData is automatically set as 'multipart/form-data'
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json()
+        console.error("Submission error:", errorData)
+        alert(`Failed to submit pitch: ${JSON.stringify(errorData)}`)
+        return
+      }
+
+      const result = await response.json()
+      console.log("Pitch submitted successfully:", result)
+      alert("Pitch submitted successfully! We will review your submission and get back to you within 48 hours.")
+
+      // Optionally, reset the form after successful submission
+      setFormData({
+        businessName: "", tagline: "", description: "", category: "", location: "",
+        fundingGoal: "", minInvestment: "", teamSize: "",
+        website: "", socialMedia: "", businessPlan: "", financialProjections: "",
+        marketAnalysis: "", competitiveAdvantage: "", useOfFunds: "",
+      })
+      setUploadedFiles({ images: [], videos: [], documents: [] })
+
+    } catch (error) {
+      console.error("Network or unexpected error:", error)
+      alert("An error occurred while submitting your pitch. Please try again.")
+    }
   }
+
+  // Icon components (no changes needed)
+  const ImageIcon = ({ className }) => (
+    <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+      <circle cx="8.5" cy="8.5" r="1.5"></circle>
+      <polyline points="21,15 16,10 5,21"></polyline>
+    </svg>
+  )
+
+  const Video = ({ className }) => (
+    <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <polygon points="23,7 16,12 23,17"></polygon>
+      <rect x="1" y="5" width="15" height="14" rx="2" ry="2"></rect>
+    </svg>
+  )
+
+  const FileText = ({ className }) => (
+    <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeWidth={2}
+        d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"
+      />
+      <polyline points="14,2 14,8 20,8"></polyline>
+      <line x1="16" y1="13" x2="8" y2="13"></line>
+      <line x1="16" y1="17" x2="8" y2="17"></line>
+      <polyline points="10,9 9,9 8,9"></polyline>
+    </svg>
+  )
 
   const FileUploadArea = ({ type, title, description, acceptedTypes, icon: Icon }) => (
     <div className="space-y-4">
@@ -193,44 +295,11 @@ export default function BusinessPitchPage() {
     </div>
   )
 
-  // Icon components
-  const ImageIcon = ({ className }) => (
-    <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-      <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
-      <circle cx="8.5" cy="8.5" r="1.5"></circle>
-      <polyline points="21,15 16,10 5,21"></polyline>
-    </svg>
-  )
-
-  const Video = ({ className }) => (
-    <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-      <polygon points="23,7 16,12 23,17"></polygon>
-      <rect x="1" y="5" width="15" height="14" rx="2" ry="2"></rect>
-    </svg>
-  )
-
-  const FileText = ({ className }) => (
-    <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-      <path
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        strokeWidth={2}
-        d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"
-      />
-      <polyline points="14,2 14,8 20,8"></polyline>
-      <line x1="16" y1="13" x2="8" y2="13"></line>
-      <line x1="16" y1="17" x2="8" y2="17"></line>
-      <polyline points="10,9 9,9 8,9"></polyline>
-    </svg>
-  )
-
   return (
     <div className="min-h-screen bg-black">
       <Header />
 
-      {/* Main Content */}
       <main className="container mx-auto px-4 py-8 max-w-4xl">
-        {/* Page Header */}
         <div className="text-center mb-12">
           <h2 className="text-4xl font-bold text-white mb-4">Submit Your Business Pitch</h2>
           <p className="text-xl text-gray-300 mb-2">Present your business idea to potential investors</p>
@@ -240,7 +309,6 @@ export default function BusinessPitchPage() {
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-8">
-          {/* Basic Information */}
           <div className="bg-gray-900 p-6 rounded-lg border border-gray-700">
             <h3 className="text-2xl font-bold text-white mb-6 flex items-center">
               <svg className="h-6 w-6 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -342,7 +410,6 @@ export default function BusinessPitchPage() {
             </div>
           </div>
 
-          {/* Funding Details */}
           <div className="bg-gray-900 p-6 rounded-lg border border-gray-700">
             <h3 className="text-2xl font-bold text-white mb-6 flex items-center">
               <svg className="h-6 w-6 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -355,6 +422,7 @@ export default function BusinessPitchPage() {
               </svg>
               Funding Details
             </h3>
+            </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
@@ -386,31 +454,9 @@ export default function BusinessPitchPage() {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-300 mb-2">
-                  <svg className="inline h-4 w-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"
-                    />
-                  </svg>
-                  Expected Return (%) *
-                </label>
-                <input
-                  type="text"
-                  name="expectedReturn"
-                  value={formData.expectedReturn}
-                  onChange={handleInputChange}
-                  required
-                  className="w-full p-3 bg-gray-800 border border-gray-600 rounded-md text-white placeholder-gray-400 focus:border-white focus:outline-none"
-                  placeholder="12-15%"
-                />
-              </div>
             </div>
           </div>
 
-          {/* Business Details */}
           <div className="bg-gray-900 p-6 rounded-lg border border-gray-700">
             <h3 className="text-2xl font-bold text-white mb-6 flex items-center">
               <svg className="h-6 w-6 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -464,7 +510,6 @@ export default function BusinessPitchPage() {
             </div>
           </div>
 
-          {/* Detailed Information */}
           <div className="bg-gray-900 p-6 rounded-lg border border-gray-700">
             <h3 className="text-2xl font-bold text-white mb-6">Detailed Information</h3>
 
@@ -536,7 +581,6 @@ export default function BusinessPitchPage() {
             </div>
           </div>
 
-          {/* File Uploads */}
           <div className="bg-gray-900 p-6 rounded-lg border border-gray-700">
             <h3 className="text-2xl font-bold text-white mb-6">Supporting Materials</h3>
 
@@ -567,7 +611,6 @@ export default function BusinessPitchPage() {
             </div>
           </div>
 
-          {/* Submit Button */}
           <div className="text-center pt-8">
             <button
               type="submit"
@@ -580,9 +623,10 @@ export default function BusinessPitchPage() {
             </p>
           </div>
         </form>
+        
       </main>
 
-      {/* Footer */}
+    <div>  
       <footer className="border-t border-gray-800 bg-gray-900 mt-16">
         <div className="container mx-auto px-4 py-8">
           <div className="text-center text-gray-300">
@@ -591,5 +635,6 @@ export default function BusinessPitchPage() {
         </div>
       </footer>
     </div>
+  </div>
   )
 }
