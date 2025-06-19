@@ -12,8 +12,6 @@ export default function BusinessDetailPage() {
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [investmentAmount, setInvestmentAmount] = useState(0);
   const [activeTab, setActiveTab] = useState("overview");
-  // Removed isLiked state as liking feature is removed
-  // const [isLiked, setIsLiked] = useState(false);
 
   // Placeholder for user type.
   const isEntrepreneur = (businessData && businessData.id === 1); // Example logic
@@ -81,7 +79,6 @@ export default function BusinessDetailPage() {
         return;
     }
 
-
     alert(`Submitting investment of ${formatCurrency(investmentAmount)} for ${businessData.title}...`);
 
     try {
@@ -89,8 +86,6 @@ export default function BusinessDetailPage() {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
-                // If you add authentication later (e.g., JWT), you'd add:
-                // 'Authorization': `Bearer YOUR_AUTH_TOKEN`
             },
             body: JSON.stringify({
                 business_id: businessData.id,
@@ -99,34 +94,62 @@ export default function BusinessDetailPage() {
         });
 
         if (!response.ok) {
-            const errorData = await response.json();
-            // Display backend validation errors (e.g., investment exceeds goal)
+            let errorData = {};
+            try {
+                errorData = await response.json();
+            } catch (jsonError) {
+                console.warn("Could not parse error JSON from backend:", jsonError);
+                errorData = { message: `Server responded with status ${response.status} but no valid JSON.` };
+            }
             console.error("Investment failed:", errorData);
-            alert(`Investment failed: ${JSON.stringify(errorData)}`);
+            alert(`Investment failed: ${JSON.stringify(errorData.message || errorData)}`);
             return;
         }
 
-        const updatedBusiness = await response.json();
+        let updatedBusiness = {};
+        if (response.status === 200 || response.status === 201) {
+            try {
+                updatedBusiness = await response.json();
+            } catch (jsonError) {
+                console.error("Error parsing successful response JSON:", jsonError);
+                alert("Investment succeeded but there was an issue receiving confirmation data. Please refresh.");
+                setBusinessData(prevData => ({
+                    ...prevData,
+                    current_funding: prevData.current_funding + investmentAmount,
+                    backers: prevData.backers + 1,
+                }));
+                return;
+            }
+        } else if (response.status === 204) {
+            console.log("Investment successful, no content returned.");
+            setBusinessData(prevData => ({
+                ...prevData,
+                current_funding: prevData.current_funding + investmentAmount,
+                backers: prevData.backers + 1,
+            }));
+            alert(`Investment of ${formatCurrency(investmentAmount)} successful! Thank you for backing ${businessData.title}!`);
+            return;
+        } else {
+            console.warn("Unexpected successful response status:", response.status);
+            alert("Investment completed with an unexpected server response. Please refresh the page.");
+            return;
+        }
+
         console.log("Investment successful:", updatedBusiness);
 
-        // Update the local state with the new funding and backer count
         setBusinessData(prevData => ({
             ...prevData,
             current_funding: updatedBusiness.current_funding,
             backers: updatedBusiness.backers,
-            // funding_goal: updatedBusiness.funding_goal // Goal should remain the same
         }));
 
         alert(`Investment of ${formatCurrency(investmentAmount)} successful! Thank you for backing ${businessData.title}!`);
-
-        // Optional: Reset investment amount or clear input
-        // setInvestmentAmount(businessData.min_investment || 0);
 
     } catch (error) {
         console.error("Network or unexpected error during investment:", error);
         alert("An error occurred while processing your investment. Please try again.");
     }
-};
+  };
 
   const handleDelete = async () => {
     if (window.confirm("Are you sure you want to delete this business? This action cannot be undone.")) {
@@ -155,6 +178,18 @@ export default function BusinessDetailPage() {
     alert("Navigating to entrepreneur dashboard (logic to be implemented).");
     // navigate('/entrepreneur-dashboard');
   };
+
+  // Dummy functions for routing later
+  const handleMessageEntrepreneur = () => {
+    alert("Messaging entrepreneur (routing to be implemented).");
+    // navigate('/messages/${businessData.entrepreneur_id}');
+  };
+
+  const handleConsultAI = () => {
+    alert("Consulting AI (routing to be implemented).");
+    // navigate('/ai-consult');
+  };
+
 
   const tabs = [
     { id: "overview", label: "Overview" },
@@ -199,10 +234,11 @@ export default function BusinessDetailPage() {
           </button>
         </div>
 
-        {/* Main Content Area (now includes Quick Facts within the first column) */}
+        {/* Main Grid Layout */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          {/* Left Column: Main Business Content (Hero & Tabs) */}
           <div className="lg:col-span-2 space-y-8">
-            {/* Hero Section - now contains Quick Facts */}
+            {/* Hero Section */}
             <div className="bg-gray-900 rounded-lg border border-gray-700 overflow-hidden">
               <div className="relative">
                 <img
@@ -237,123 +273,88 @@ export default function BusinessDetailPage() {
                     {businessData.category}
                   </span>
                 </div>
-
-                {/* Removed Liking and Sharing buttons */}
-                {/*
-                <div className="absolute top-4 right-4 flex space-x-2">
-                  <button
-                    onClick={() => setIsLiked(!isLiked)}
-                    className={`p-2 rounded-full transition-colors ${
-                      isLiked ? "bg-red-600 text-white" : "bg-black bg-opacity-50 text-white hover:bg-opacity-75"
-                    }`}
-                  >
-                    <svg
-                      className="h-4 w-4"
-                      fill={isLiked ? "currentColor" : "none"}
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"
-                      />
-                    </svg>
-                  </button>
-                  <button className="bg-black bg-opacity-50 text-white p-2 rounded-full hover:bg-opacity-75 transition-all">
-                    <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.367 2.684 3 3 0 00-5.367-2.684z"
-                      />
-                    </svg>
-                  </button>
-                </div>
-                */}
               </div>
 
               <div className="p-6">
-                {/* Content Wrapper for flex layout */}
-                <div className="flex flex-col lg:flex-row lg:space-x-8">
-                  {/* Left part of Hero (Title, Tagline, Location, Team, Website, Description) */}
-                  <div className="lg:w-2/3"> {/* Adjust width as needed */}
-                    <h1 className="text-3xl font-bold text-white mb-2">{businessData.title}</h1>
-                    <p className="text-xl text-gray-300 mb-4">{businessData.tagline}</p>
+                <h1 className="text-3xl font-bold text-white mb-2">{businessData.title}</h1>
+                <p className="text-xl text-gray-300 mb-4">{businessData.tagline}</p>
 
-                    <div className="flex flex-wrap items-center gap-4 text-sm text-gray-400 mb-6">
-                      <div className="flex items-center">
-                        <svg className="h-4 w-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth={2}
-                            d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"
-                          />
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth={2}
-                            d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"
-                          />
-                        </svg>
-                        {businessData.location}
-                      </div>
-                      <div className="flex items-center">
-                        <svg className="h-4 w-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth={2}
-                            d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0z"
-                          />
-                        </svg>
-                        {businessData.team_size} team members
-                      </div>
-                      <div className="flex items-center">
-                        <svg className="h-4 w-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth={2}
-                            d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9v-9m0-9v9"
-                          />
-                        </svg>
-                        <a href={businessData.website} className="hover:text-white transition-colors">
-                          Website
-                        </a>
-                      </div>
-                    </div>
-                    <p className="text-gray-300 leading-relaxed">{businessData.description}</p>
+                <div className="flex flex-wrap items-center gap-4 text-sm text-gray-400 mb-6">
+                  <div className="flex items-center">
+                    <svg className="h-4 w-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"
+                      />
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"
+                      />
+                    </svg>
+                    {businessData.location}
                   </div>
+                  <div className="flex items-center">
+                    <svg className="h-4 w-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0z"
+                      />
+                    </svg>
+                    {businessData.team_size} team members
+                  </div>
+                  <div className="flex items-center">
+                    <svg className="h-4 w-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9v-9m0-9v9"
+                      />
+                    </svg>
+                    <a href={businessData.website} className="hover:text-white transition-colors">
+                      Website
+                    </a>
+                  </div>
+                </div>
 
-                  {/* Right part of Hero: Quick Facts */}
-                  <div className="lg:w-1/3 mt-6 lg:mt-0"> {/* Adjust width and margin */}
-                    <div className="bg-gray-800 p-4 rounded-lg border border-gray-600"> {/* Inner card styling */}
-                      <h3 className="text-white font-semibold mb-4">Quick Facts</h3>
-                      <div className="space-y-3 text-sm">
-                        <div className="flex justify-between">
-                          <span className="text-gray-400">Category</span>
-                          <span className="text-white">{businessData.category}</span>
-                        </div>
-                        <div className="flex justify-between">
-                          <span className="text-gray-400">Location</span>
-                          <span className="text-white">{businessData.location}</span>
-                        </div>
-                        <div className="flex justify-between">
-                          <span className="text-gray-400">Team Size</span>
-                          <span className="text-white">{businessData.team_size} people</span>
-                        </div>
-                        <div className="flex justify-between">
-                          <span className="text-gray-400">Social Media</span>
-                          <span className="text-white">{businessData.social_media}</span>
-                        </div>
-                      </div>
+                <p className="text-gray-300 leading-relaxed mb-6">{businessData.description}</p>
+
+                {/* Entrepreneur Name and Buttons */}
+                {//businessData.entrepreneur_name && (
+                  <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 mt-4">
+                    <p className="text-gray-300 text-lg font-semibold">
+                      Entrepreneur: <span className="text-white">{businessData.entrepreneur_name}</span>
+                    </p>
+                    <div className="flex flex-wrap gap-4"> {/* Buttons wrapped in a div for flex control */}
+                      <button
+                        onClick={handleMessageEntrepreneur}
+                        className="bg-transparent border border-gray-400 hover:border-white text-gray-300 hover:text-white font-semibold py-2 px-4 rounded-md transition-colors" // Changed classes
+                      >
+                        <svg className="h-5 w-5 inline-block mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                        </svg>
+                        Message
+                      </button>
+                      <button
+                        onClick={handleConsultAI}
+                        className="bg-white text-black hover:bg-gray-200 font-semibold py-2 px-4 rounded-md transition-colors" // Changed classes
+                      >
+                        <svg className="h-5 w-5 inline-block mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 21a9 9 0 100-18 9 9 0 000 18z" />
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14.828 14.828a4 4 0 00-5.656 0M9 10h.01M15 10h.01" />
+                        </svg>
+                        Consult AI
+                      </button>
                     </div>
                   </div>
-                </div> {/* End Content Wrapper */}
+                //)
+                }
               </div>
             </div>
 
@@ -409,6 +410,10 @@ export default function BusinessDetailPage() {
                         <h4 className="text-white font-medium mb-2">Minimum Investment</h4>
                         <p className="text-2xl font-bold text-white">{formatCurrency(businessData.min_investment)}</p>
                       </div>
+                      <div className="bg-gray-800 p-4 rounded-lg">
+                        <h4 className="text-white font-medium mb-2">Total Amount Required</h4>
+                        <p className="text-2xl font-bold text-white">{formatCurrency(businessData.funding_goal)}</p>
+                      </div>
                     </div>
                   </div>
                 )}
@@ -427,24 +432,22 @@ export default function BusinessDetailPage() {
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         {businessData.videos.map((video, index) => (
                           <div key={index} className="relative bg-gray-800 rounded-lg overflow-hidden">
-                            {video.video_file_url ? ( // Check if video URL exists
-                                <video
-                                  controls // Adds default browser controls (play/pause, volume, fullscreen)
-                                  poster={video.thumbnail_url || "/placeholder.svg"} // Use thumbnail as poster image
-                                  className="w-full h-32 object-cover" // Maintain responsive sizing
-                                >
-                                  <source src={video.video_file_url} type="video/mp4" /> {/* Assuming MP4 format */}
-                                  {/* Add other source types if you expect different video formats */}
-                                  Your browser does not support the video tag.
-                                </video>
-                                  ) : (
-                                    // Fallback if no video URL
-                                    <img
-                                      src={video.thumbnail_url || "/placeholder.svg"}
-                                      alt={video.title}
-                                      className="w-full h-32 object-cover"
-                                    />
-                                  )}
+                            {video.video_file_url ? (
+                              <video
+                                controls
+                                poster={video.thumbnail_url || "/placeholder.svg"}
+                                className="w-full h-32 object-cover"
+                              >
+                                <source src={video.video_file_url} type="video/mp4" />
+                                Your browser does not support the video tag.
+                              </video>
+                            ) : (
+                              <img
+                                src={video.thumbnail_url || "/placeholder.svg"}
+                                alt={video.title}
+                                className="w-full h-32 object-cover"
+                              />
+                            )}
                           </div>
                         ))}
                       </div>
@@ -494,10 +497,10 @@ export default function BusinessDetailPage() {
             </div>
           </div>
 
-          {/* Right Column: Only for the Invest Now Card */}
-          <div className="lg:col-span-1 space-y-6"> {/* Keep space-y-6 in case you add other cards later */}
+          {/* Right Column: Investment Card and Quick Facts (stacked) */}
+          <div className="lg:col-span-1 space-y-6">
             {/* Investment Card - Scrolling, strictly to the right */}
-            <div className="bg-gray-900 p-6 rounded-lg border border-gray-700"> {/* Removed all positioning classes */}
+            <div className="bg-gray-900 p-6 rounded-lg border border-gray-700">
               <div className="space-y-4">
                 <div className="flex justify-between items-center">
                   <span className="text-gray-300">Progress</span>
@@ -555,6 +558,29 @@ export default function BusinessDetailPage() {
                     Invest Now
                   </button>
                 )}
+              </div>
+            </div>
+
+            {/* Quick Facts Section - now below Investment Card, scrolls with it */}
+            <div className="bg-gray-900 p-6 rounded-lg border border-gray-700">
+              <h3 className="text-white font-semibold mb-4">Quick Facts</h3>
+              <div className="space-y-3 text-sm">
+                <div className="flex justify-between">
+                  <span className="text-gray-400">Category</span>
+                  <span className="text-white">{businessData.category}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-gray-400">Location</span>
+                  <span className="text-white">{businessData.location}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-gray-400">Team Size</span>
+                  <span className="text-white">{businessData.team_size} people</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-gray-400">Social Media</span>
+                  <span className="text-white">{businessData.social_media}</span>
+                </div>
               </div>
             </div>
           </div>
