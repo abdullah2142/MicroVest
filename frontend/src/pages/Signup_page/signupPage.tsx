@@ -470,7 +470,7 @@ export default function SignupPage() {
             <div className="w-10 h-10 bg-white rounded-lg flex items-center justify-center">
               <TrendingUp className="w-6 h-6 text-black" />
             </div>
-            <span className="text-2xl font-bold text-white">Microvest</span>
+            <span className="text-2xl font-bold text-white">MicroVest</span>
           </div>
         </div>
         <h2 className="mt-6 text-center text-3xl font-bold text-white">Create your account</h2>

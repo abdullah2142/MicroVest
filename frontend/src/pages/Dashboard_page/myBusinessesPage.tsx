@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { PlusCircle, Edit, Trash2, BarChart3, FileText } from 'lucide-react';
+import { PlusCircle, Edit, Trash2, BarChart3, FileText, Eye } from 'lucide-react';
 import { useUser } from '../../context/UserContext';
 
 interface Business {
@@ -12,6 +12,7 @@ interface Business {
   current_funding: number;
   backers: number;
   image?: string;
+  deadline: string;
 }
 
 export default function MyBusinessesPage() {
@@ -109,6 +110,21 @@ export default function MyBusinessesPage() {
   const formatCurrency = (amount: number) => new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(amount);
   const calculateProgress = (current: number, goal: number) => Math.min((current / goal) * 100, 100);
 
+  const getBusinessStatus = (business: Business) => {
+    const now = new Date();
+    const deadline = new Date(business.deadline);
+    const isExpired = deadline < now;
+    const hasExactFunding = business.current_funding === business.funding_goal;
+    
+    if (hasExactFunding) {
+      return { status: 'Fully Funded', color: 'text-green-600', bgColor: 'bg-green-100' };
+    } else if (isExpired) {
+      return { status: 'Funding Expired', color: 'text-red-600', bgColor: 'bg-red-100' };
+    } else {
+      return { status: 'Raising Funds', color: 'text-blue-600', bgColor: 'bg-blue-100' };
+    }
+  };
+
   // Show loading state while user context is loading
   if (user.loading) {
     return (
@@ -148,6 +164,7 @@ export default function MyBusinessesPage() {
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6">
         {businesses.map(business => {
           const progress = calculateProgress(business.current_funding, business.funding_goal);
+          const { status, color, bgColor } = getBusinessStatus(business);
           return (
             <div key={business.id} className="bg-white rounded-xl shadow-md overflow-hidden flex flex-col group">
               <div className="h-56 bg-gray-100">
@@ -163,7 +180,17 @@ export default function MyBusinessesPage() {
                 />
               </div>
               <div className="p-5 flex-grow flex flex-col">
-                <h2 className="text-xl font-bold text-gray-900 mb-1 truncate">{business.title}</h2>
+                <div className="flex items-start justify-between mb-1">
+                  <h2 
+                    onClick={() => navigate(`/business/${business.id}`)}
+                    className="text-xl font-bold text-gray-900 truncate cursor-pointer hover:text-blue-600 transition-colors flex-1"
+                  >
+                    {business.title}
+                  </h2>
+                  <span className={`inline-flex px-2 py-1 rounded-full text-xs font-medium ${bgColor} ${color} ml-2 flex-shrink-0`}>
+                    {status}
+                  </span>
+                </div>
                 <p className="text-sm text-gray-500 mb-4">{business.category} • {business.location}</p>
 
                 <div className="space-y-2 mb-4">
@@ -180,35 +207,61 @@ export default function MyBusinessesPage() {
                   </div>
                 </div>
 
-                <div className="flex justify-between items-center mt-auto pt-4 border-t border-gray-100">
-                  <div>
-                    <p className="font-bold text-lg text-gray-900">{business.backers || 0}</p>
-                    <p className="text-xs text-gray-500">Investors</p>
+                <div className="mt-auto pt-4 border-t border-gray-100">
+                  <div className="flex justify-between items-center mb-4">
+                    <div 
+                      onClick={() => navigate(`/business/${business.id}/fund-statistics`)}
+                      className="cursor-pointer hover:bg-gray-50 p-2 rounded-lg transition-colors"
+                    >
+                      <p className="font-bold text-lg text-gray-900">{business.backers || 0}</p>
+                      <p className="text-xs text-gray-500">Investors</p>
+                    </div>
                   </div>
-                  <div className="flex items-center gap-2">
-                    <button 
-                      onClick={() => navigate(`/businesses/${business.id}/logs`)} 
-                      className="p-2 rounded-full text-gray-500 hover:bg-blue-100 hover:text-blue-600 transition-colors" 
-                      title="View Logs"
-                    >
-                      <FileText size={18} />
-                    </button>
-                    <button 
-                      onClick={() => navigate(`/business/${business.id}/fund-statistics`)} 
-                      className="p-2 rounded-full text-gray-500 hover:bg-green-100 hover:text-green-600 transition-colors" 
-                      title="Fund Statistics"
-                    >
-                      <BarChart3 size={18} />
-                    </button>
-                    <button onClick={() => handleEdit(business.id)} className="p-2 rounded-full text-gray-500 hover:bg-gray-100 hover:text-gray-900 transition-colors">
-                      <Edit size={18} />
-                    </button>
-                    <button onClick={() => handleDelete(business.id)} className="p-2 rounded-full text-gray-500 hover:bg-red-100 hover:text-red-600 transition-colors">
-                      <Trash2 size={18} />
-                    </button>
-                    <button onClick={() => navigate(`/businesses/${business.id}/logs/create`)} className="p-2 rounded-full text-gray-500 hover:bg-blue-100 hover:text-blue-600 transition-colors" title="Create Log">
-                      📝
-                    </button>
+                  
+                  {/* Action Buttons - Professional & Intuitive Layout */}
+                  <div className="space-y-3">
+                    {/* Secondary Actions Row 1 */}
+                    <div className="grid grid-cols-2 gap-2">
+                      <button 
+                        onClick={() => navigate(`/businesses/${business.id}/logs`)} 
+                        className="flex items-center justify-center gap-1.5 px-3 py-2 text-xs font-medium text-blue-700 bg-blue-50 rounded-md hover:bg-blue-100 transition-colors border border-blue-200" 
+                      >
+                        <FileText size={14} />
+                        <span>View Logs</span>
+                      </button>
+                      <button 
+                        onClick={() => navigate(`/business/${business.id}/fund-statistics`)} 
+                        className="flex items-center justify-center gap-1.5 px-3 py-2 text-xs font-medium text-green-700 bg-green-50 rounded-md hover:bg-green-100 transition-colors border border-green-200" 
+                      >
+                        <BarChart3 size={14} />
+                        <span>Statistics</span>
+                      </button>
+                    </div>
+                    
+                    {/* Secondary Actions Row 2 */}
+                    <div className="grid grid-cols-3 gap-2">
+                      <button 
+                        onClick={() => handleEdit(business.id)} 
+                        className="flex items-center justify-center gap-1.5 px-2 py-2 text-xs font-medium text-gray-700 bg-gray-50 rounded-md hover:bg-gray-100 transition-colors border border-gray-200"
+                      >
+                        <Edit size={14} />
+                        <span>Edit</span>
+                      </button>
+                      <button 
+                        onClick={() => navigate(`/businesses/${business.id}/logs/create`)} 
+                        className="flex items-center justify-center gap-1.5 px-2 py-2 text-xs font-medium text-purple-700 bg-purple-50 rounded-md hover:bg-purple-100 transition-colors border border-purple-200" 
+                      >
+                        <span className="text-sm">📝</span>
+                        <span>New Log</span>
+                      </button>
+                      <button 
+                        onClick={() => handleDelete(business.id)} 
+                        className="flex items-center justify-center gap-1.5 px-2 py-2 text-xs font-medium text-red-700 bg-red-50 rounded-md hover:bg-red-100 transition-colors border border-red-200"
+                      >
+                        <Trash2 size={14} />
+                        <span>Delete</span>
+                      </button>
+                    </div>
                   </div>
                 </div>
               </div>

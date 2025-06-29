@@ -32,16 +32,12 @@ class InvestmentCreateSerializer(serializers.ModelSerializer):
         model = Investment
         fields = ['business', 'amount']
     
-    def validate(self, data):
-        # Check if user has already invested in this business
-        user = self.context['request'].user
-        business = data['business']
-        
-        if Investment.objects.filter(user=user, business=business).exists():
-            raise serializers.ValidationError("You have already invested in this business.")
-        
-        return data
-    
     def create(self, validated_data):
-        validated_data['user'] = self.context['request'].user
-        return super().create(validated_data) 
+        user = self.context['request'].user
+        business = validated_data['business']
+        amount = validated_data['amount']
+        investment, created = Investment.objects.get_or_create(user=user, business=business, defaults={'amount': amount})
+        if not created:
+            investment.amount += amount
+            investment.save(update_fields=['amount'])
+        return investment 

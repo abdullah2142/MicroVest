@@ -1,5 +1,6 @@
 import type React from "react"
 import { useEffect, useRef, useState } from "react"
+import { useNavigate } from "react-router-dom"
 
 import {
   ArrowRight,
@@ -127,7 +128,9 @@ const AnimatedSection = ({
   )
 }
 
-export default function MicrovestLanding() {
+export default function MicroVestLanding() {
+  const navigate = useNavigate();
+
   return (
     <div className="flex flex-col min-h-screen bg-white">
       {/* Header */}
@@ -137,7 +140,7 @@ export default function MicrovestLanding() {
             <div className="w-8 h-8 bg-black rounded-lg flex items-center justify-center">
               <TrendingUp className="w-5 h-5 text-white" />
             </div>
-            <span className="text-xl font-bold text-black">Microvest</span>
+            <span className="text-xl font-bold text-black">MicroVest</span>
           </div>
           <nav className="hidden md:flex gap-6">
             <a href="#features" className="text-sm font-medium text-gray-600 hover:text-black transition-colors">
@@ -233,7 +236,7 @@ export default function MicrovestLanding() {
         <div className="max-w-7xl mx-auto">
           <AnimatedSection delay={200}>
             <div className="text-center mb-16">
-              <h2 className="text-3xl lg:text-4xl font-bold mb-4 text-black">Why Choose Microvest?</h2>
+              <h2 className="text-3xl lg:text-4xl font-bold mb-4 text-black">Why Choose MicroVest?</h2>
               <p className="text-xl text-gray-600 max-w-2xl mx-auto">
                 Built for transparency, designed for growth, and optimized for fair returns.
               </p>
@@ -323,7 +326,7 @@ export default function MicrovestLanding() {
         <div className="max-w-7xl mx-auto">
           <AnimatedSection delay={200}>
             <div className="text-center mb-16">
-              <h2 className="text-3xl lg:text-4xl font-bold mb-4 text-black">How Microvest Works</h2>
+              <h2 className="text-3xl lg:text-4xl font-bold mb-4 text-black">How MicroVest Works</h2>
               <p className="text-xl text-gray-600 max-w-2xl mx-auto">
                 Simple steps for both entrepreneurs and investors to get started.
               </p>
@@ -445,7 +448,7 @@ export default function MicrovestLanding() {
         <div className="max-w-7xl mx-auto">
           <AnimatedSection delay={200}>
             <div className="text-center mb-16">
-              <h2 className="text-3xl lg:text-4xl font-bold mb-4 text-black">The Microvest Advantage</h2>
+              <h2 className="text-3xl lg:text-4xl font-bold mb-4 text-black">The MicroVest Advantage</h2>
               <p className="text-xl text-gray-600 max-w-2xl mx-auto">
                 Experience the future of crowdfunding with our innovative approach.
               </p>
@@ -528,7 +531,7 @@ export default function MicrovestLanding() {
           <div className="max-w-4xl mx-auto text-center">
             <h2 className="text-3xl lg:text-4xl font-bold mb-6">Ready to Start Your Journey?</h2>
             <p className="text-xl mb-8 text-gray-300">
-              Join thousands of investors and entrepreneurs who trust Microvest for transparent, fair, and profitable
+              Join thousands of investors and entrepreneurs who trust MicroVest for transparent, fair, and profitable
               crowdfunding.
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
@@ -554,7 +557,7 @@ export default function MicrovestLanding() {
         <div className="max-w-7xl mx-auto">
           <div className="text-center">
             <p className="text-sm text-gray-400">
-              &copy; 2024 Microvest. All rights reserved.
+              &copy; 2024 MicroVest. All rights reserved.
             </p>
           </div>
         </div>

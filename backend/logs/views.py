@@ -53,8 +53,18 @@ def log_list(request):
                         {'error': 'You can only create logs for your own businesses'}, 
                         status=status.HTTP_403_FORBIDDEN
                     )
+                
+                # Check if the business is fully funded
+                if business.current_funding != business.funding_goal:
+                    print("Business is not fully funded")
+                    return Response(
+                        {'error': 'You can only create logs for fully funded businesses'}, 
+                        status=status.HTTP_403_FORBIDDEN
+                    )
+                
                 print("User owns the business, saving log")
-                serializer.save()
+                log = serializer.save()
+                
                 return Response(serializer.data, status=status.HTTP_201_CREATED)
             else:
                 print("Serializer errors:", serializer.errors)

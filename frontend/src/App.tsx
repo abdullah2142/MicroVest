@@ -14,6 +14,7 @@ import CataloguePage from './pages/BusinessPages/CataloguePage'
 import BusinessDetailPage from './pages/BusinessPages/BusinessDetailPage'
 import BusinessPitchPage from './pages/BusinessPages/BusinessPitchPage'
 import MyBusinessesPage from './pages/Dashboard_page/myBusinessesPage'
+import MyInvestmentsPage from './pages/Dashboard_page/myInvestmentsPage'
 import CreateLogPage from './pages/BusinessPages/CreateLogPage'
 import BusinessLogsPage from './pages/BusinessPages/BusinessLogsPage'
 import FundStatisticsPage from './pages/BusinessPages/FundStatisticsPage'
@@ -49,6 +50,7 @@ function App() {
         <Route path='/business/:id' element={<BusinessDetailPage />} />
         <Route path='/pitch' element={<BusinessPitchPage />} />
         <Route path='/my-businesses' element={<MyBusinessesPage />} />
+        <Route path='/my-investments' element={<MyInvestmentsPage />} />
         <Route path='/edit-business/:id' element={<BusinessPitchPage editMode={true} />} />
         <Route path='/documentation' element={<DocumentationPage />} />
         <Route path='/messages' element={<MessagingPage />} />

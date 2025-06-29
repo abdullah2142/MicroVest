@@ -2,6 +2,7 @@ import { useState, useEffect } from "react"; // Import useEffect
 import { useNavigate } from "react-router-dom";
 import Footer from "../../components/footer";
 import { useUser } from "../../context/UserContext";
+import Notification from '../../components/Notification';
 
 const categories = ["All Categories", "Food & Beverage", "Technology", "Agriculture", "Services", "Manufacturing"];
 
@@ -17,6 +18,13 @@ interface Investment {
   min_investment: number;
   image?: string;
   user: number | string;
+}
+
+interface NotificationState {
+  isVisible: boolean;
+  type: 'success' | 'error' | 'warning' | 'info';
+  title: string;
+  message: string;
 }
 
 export default function CataloguePage() {
@@ -36,11 +44,20 @@ export default function CataloguePage() {
   const [selectedInvestment, setSelectedInvestment] = useState<Investment | null>(null);
   const [investmentAmount, setInvestmentAmount] = useState("");
   const [isInvesting, setIsInvesting] = useState(false);
+  const [notification, setNotification] = useState<NotificationState>({
+    isVisible: false,
+    type: 'info',
+    title: '',
+    message: ''
+  });
 
   // Check if current user is the owner of a business
   const isOwner = (investment: Investment) => {
     const currentUserId = localStorage.getItem('userId');
-    return currentUserId && String(investment.user) === String(currentUserId);
+    const businessUserId = investment.user;
+    
+    // Ensure both are strings for comparison
+    return currentUserId && String(businessUserId) === String(currentUserId);
   };
 
   useEffect(() => {
@@ -95,12 +112,25 @@ export default function CataloguePage() {
     navigate(`/business/${investmentId}`);
   };
 
+  const showNotification = (type: 'success' | 'error' | 'warning' | 'info', title: string, message: string) => {
+    setNotification({
+      isVisible: true,
+      type,
+      title,
+      message
+    });
+  };
+
+  const hideNotification = () => {
+    setNotification(prev => ({ ...prev, isVisible: false }));
+  };
+
   const handleInvestmentSubmit = async () => {
     if (!selectedInvestment || !investmentAmount) return;
     
     const amount = parseFloat(investmentAmount);
     if (isNaN(amount) || amount < selectedInvestment.min_investment) {
-      alert(`Minimum investment amount is ${formatCurrency(selectedInvestment.min_investment)}`);
+      showNotification('error', 'Invalid Amount', `Minimum investment amount is ${formatCurrency(selectedInvestment.min_investment)}`);
       return;
     }
 
@@ -108,7 +138,7 @@ export default function CataloguePage() {
     try {
       const token = localStorage.getItem('authToken');
       if (!token) {
-        alert('Please log in to invest');
+        showNotification('error', 'Authentication Required', 'Please log in to invest');
         return;
       }
 
@@ -129,7 +159,7 @@ export default function CataloguePage() {
         
         // Check if token is expired
         if (errorData.code === 'token_not_valid' || errorData.detail?.includes('expired')) {
-          alert('Your session has expired. Please log in again.');
+          showNotification('error', 'Session Expired', 'Your session has expired. Please log in again.');
           localStorage.removeItem('authToken');
           localStorage.removeItem('userId');
           navigate('/login');
@@ -140,7 +170,7 @@ export default function CataloguePage() {
       }
 
       const result = await response.json();
-      alert(`Successfully invested ${formatCurrency(amount)}!`);
+      showNotification('success', 'Investment Successful', `Successfully invested ${formatCurrency(amount)}!`);
       
       // Update the local state instead of reloading the page
       setInvestments(prevInvestments => 
@@ -148,8 +178,8 @@ export default function CataloguePage() {
           inv.id === selectedInvestment.id 
             ? {
                 ...inv,
-                current_funding: inv.current_funding + amount,
-                backers: inv.backers + 1
+                current_funding: result.current_funding,
+                backers: result.backers
               }
             : inv
         )
@@ -160,7 +190,7 @@ export default function CataloguePage() {
       setInvestmentAmount("");
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-      alert(`Investment failed: ${errorMessage}`);
+      showNotification('error', 'Investment Failed', `Investment failed: ${errorMessage}`);
     } finally {
       setIsInvesting(false);
     }
@@ -234,7 +264,12 @@ export default function CataloguePage() {
                       <span className="absolute top-3 left-3 bg-white text-black border border-gray-300 px-2 py-1 text-xs font-medium rounded-full">{investment.category}</span>
                     </div>
                     <div className="p-6">
-                      <h3 className="text-xl font-semibold text-white mb-2">{investment.title}</h3>
+                      <h3 
+                        onClick={() => handleViewDetails(investment.id)}
+                        className="text-xl font-semibold text-white mb-2 cursor-pointer hover:text-emerald-400 transition-colors"
+                      >
+                        {investment.title}
+                      </h3>
                       <p className="text-gray-400 text-sm mb-4 line-clamp-2">{investment.description}</p>
                       <div className="space-y-3">
                         <div className="flex justify-between text-sm"><span className="text-gray-400">Location</span><span className="text-white">{investment.location}</span></div>
@@ -247,9 +282,13 @@ export default function CataloguePage() {
                       </div>
                       <div className="mt-6 flex gap-3">
                         {isOwner(investment) ? (
-                          <button disabled className="flex-1 bg-gray-600 text-gray-300 py-2 px-4 rounded-md cursor-not-allowed font-medium">Your Business</button>
+                          <button disabled className="flex-1 bg-gray-600 text-gray-300 py-2 px-4 rounded-md cursor-not-allowed font-medium">
+                            Your Business
+                          </button>
                         ) : (
-                          <button onClick={() => handleInvestNow(investment)} className="flex-1 bg-emerald-600 text-white py-2 px-4 rounded-md hover:bg-emerald-700 transition-colors font-medium">Invest Now</button>
+                          <button onClick={() => handleInvestNow(investment)} className="flex-1 bg-emerald-600 text-white py-2 px-4 rounded-md hover:bg-emerald-700 transition-colors font-medium">
+                            Invest Now
+                          </button>
                         )}
                         <button onClick={() => handleViewDetails(investment.id)} className="flex-1 bg-gray-700 text-white py-2 px-4 rounded-md hover:bg-gray-600 transition-colors font-medium">View Details</button>
                       </div>
@@ -286,6 +325,14 @@ export default function CataloguePage() {
           </div>
         </div>
       )}
+
+      <Notification
+        isVisible={notification.isVisible}
+        type={notification.type}
+        title={notification.title}
+        message={notification.message}
+        onClose={hideNotification}
+      />
     </div>
   );
 } 

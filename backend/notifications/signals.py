@@ -3,6 +3,7 @@ from django.db.models.signals import post_save
 from django.dispatch import receiver
 from investments_tracking.models import Investment
 from logs.models import Log, ProfitDistribution
+from messaging.models import FriendRequest
 from .models import Notification
 import logging
 
@@ -34,3 +35,27 @@ def invoice_notification(sender, instance, created, **kwargs):
     if created:
         message = f"You have received a profit distribution of ${instance.amount_distributed} from '{instance.log.business.title}'."
         Notification.objects.create(recipient=instance.user, message=message)
+
+@receiver(post_save, sender=FriendRequest)
+def friend_request_notification(sender, instance, created, **kwargs):
+    if created:
+        # Notify the recipient about the new friend request
+        sender_name = instance.from_user.get_full_name() or instance.from_user.username
+        message = f"{sender_name} sent you a friend request."
+        Notification.objects.create(recipient=instance.to_user, message=message)
+        logger.info(f"Friend request notification created for user {instance.to_user.username}")
+    
+    elif instance.status == 'accepted':
+        # Notify both users that they are now friends
+        recipient_name = instance.to_user.get_full_name() or instance.to_user.username
+        sender_name = instance.from_user.get_full_name() or instance.from_user.username
+        
+        # Notify the recipient
+        message = f"You are now friends with {sender_name}. You can start messaging them!"
+        Notification.objects.create(recipient=instance.to_user, message=message)
+        
+        # Notify the sender
+        message = f"You are now friends with {recipient_name}. You can start messaging them!"
+        Notification.objects.create(recipient=instance.from_user, message=message)
+        
+        logger.info(f"Friend request notifications created for users {instance.from_user.username} and {instance.to_user.username}")

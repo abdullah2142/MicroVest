@@ -22,6 +22,7 @@ from investments_tracking.models import Investment
 from django.utils.dateparse import parse_date
 from datetime import datetime
 from rest_framework.decorators import api_view, permission_classes
+from messaging.utils import create_automatic_friendship
 
 class InvestAPIView(generics.GenericAPIView):
     serializer_class = InvestmentSerializer
@@ -40,31 +41,52 @@ class InvestAPIView(generics.GenericAPIView):
         business = Business.objects.get(id=business_id)
         
         # Check if user has already invested in this business
-        if Investment.objects.filter(user=request.user, business=business).exists():
-            return Response(
-                {'error': 'You have already invested in this business.'}, 
-                status=status.HTTP_400_BAD_REQUEST
+        existing_investment = Investment.objects.filter(user=request.user, business=business).first()
+        
+        if existing_investment:
+            # Update existing investment
+            old_amount = existing_investment.amount
+            existing_investment.amount += investment_amount
+            existing_investment.save()
+            
+            # Update the business funding (only add the new amount)
+            business.current_funding += investment_amount
+            business.save(update_fields=['current_funding'])
+            
+            # Automatically create friendship between investor and business owner
+            create_automatic_friendship(request.user, business.user)
+            
+            # Return the updated business data
+            return Response({
+                'message': f'Additional investment of ${investment_amount} successful! Total investment: ${existing_investment.amount}',
+                'current_funding': business.current_funding,
+                'backers': business.backers,
+                'investment_id': existing_investment.id,
+                'total_investment': existing_investment.amount
+            }, status=status.HTTP_200_OK)
+        else:
+            # Create new investment record
+            investment = Investment.objects.create(
+                user=request.user,
+                business=business,
+                amount=investment_amount
             )
-        
-        # Create the investment record
-        investment = Investment.objects.create(
-            user=request.user,
-            business=business,
-            amount=investment_amount
-        )
-        
-        # Update the business funding and backers count
-        business.current_funding += investment_amount
-        business.backers += 1
-        business.save(update_fields=['current_funding', 'backers'])
-        
-        # Return the updated business data
-        return Response({
-            'message': 'Investment successful!',
-            'current_funding': business.current_funding,
-            'backers': business.backers,
-            'investment_id': investment.id
-        }, status=status.HTTP_200_OK)
+            
+            # Update the business funding and backers count
+            business.current_funding += investment_amount
+            business.backers += 1
+            business.save(update_fields=['current_funding', 'backers'])
+            
+            # Automatically create friendship between investor and business owner
+            create_automatic_friendship(request.user, business.user)
+            
+            # Return the updated business data
+            return Response({
+                'message': 'Investment successful!',
+                'current_funding': business.current_funding,
+                'backers': business.backers,
+                'investment_id': investment.id
+            }, status=status.HTTP_200_OK)
 
 class BusinessDeleteView(generics.DestroyAPIView):
     queryset = Business.objects.all()

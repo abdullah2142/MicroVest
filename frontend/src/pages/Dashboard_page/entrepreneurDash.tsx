@@ -23,6 +23,7 @@ interface Business {
   image?: string;
   created_at: string;
   entrepreneur_name: string;
+  deadline: string;
 }
 
 interface Investment {
@@ -246,6 +247,22 @@ export default function EntrepreneurDashboard() {
     }).format(amount)
   }
 
+  const getBusinessStatus = (business: Business) => {
+    const now = new Date();
+    const deadline = new Date(business.deadline);
+    const isExpired = deadline < now;
+    const isFullyFunded = business.current_funding >= business.funding_goal;
+    const hasExactFunding = business.current_funding === business.funding_goal;
+    
+    if (hasExactFunding) {
+      return { status: 'Fully Funded', color: 'text-green-600', bgColor: 'bg-green-100' };
+    } else if (isExpired) {
+      return { status: 'Funding Expired', color: 'text-red-600', bgColor: 'bg-red-100' };
+    } else {
+      return { status: 'Raising Funds', color: 'text-blue-600', bgColor: 'bg-blue-100' };
+    }
+  }
+
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
@@ -377,33 +394,51 @@ export default function EntrepreneurDashboard() {
             </div>
 
             <div>
-              <div className="font-semibold text-xl mb-4">Active Businesses</div>
+              <div className="font-semibold text-xl mb-4">My Businesses</div>
               <div className="bg-white rounded-2xl shadow-[0_8px_30px_rgba(0,0,0,0.08)] p-0 overflow-x-auto">
                 <table className="min-w-full">
                   <thead>
                     <tr className="text-left text-sm text-gray-500">
                       <th className="px-8 py-4">Business</th>
+                      <th className="px-8 py-4">Status</th>
                       <th className="px-8 py-4">Funding Goal</th>
                       <th className="px-8 py-4">Raised</th>
                       <th className="px-8 py-4">Investors</th>
+                      <th className="px-8 py-4">Actions</th>
                     </tr>
                   </thead>
                   <tbody className="text-base">
-                    {businesses.slice(0, 2).map((item) => (
-                      <tr key={item.id} className="border-t">
-                        <td className="px-8 py-6 font-medium text-gray-900">{item.title}</td>
-                        <td className="px-8 py-6 text-gray-900 font-semibold">{formatCurrency(item.funding_goal)}</td>
-                        <td className="px-8 py-6">
-                          <div className="flex items-center gap-3">
-                            <div className="w-40 h-3 bg-gray-200 rounded-full overflow-hidden">
-                              <div className="h-3 rounded-full bg-gray-900" style={{ width: `${Math.round((parseFloat(item.current_funding?.toString() || '0') / parseFloat(item.funding_goal?.toString() || '1')) * 100)}%` }}></div>
-                            </div>
-                            <span className="text-gray-700 font-semibold">{Math.round((parseFloat(item.current_funding?.toString() || '0') / parseFloat(item.funding_goal?.toString() || '1')) * 100)}</span>
-                          </div>
-                        </td>
-                        <td className="px-8 py-6 text-gray-700">{item.backers}</td>
-                      </tr>
-                    ))}
+                    {businesses.slice(0, 2).map((item) => {
+                      const status = getBusinessStatus(item);
+                      return (
+                        <tr key={item.id} className="border-t">
+                          <td className="px-8 py-6">
+                            <button 
+                              onClick={() => navigate(`/business/${item.id}`)}
+                              className="font-medium text-gray-900 hover:text-blue-600 transition-colors text-left"
+                            >
+                              {item.title}
+                            </button>
+                          </td>
+                          <td className="px-8 py-6">
+                            <span className={`inline-flex px-3 py-1 rounded-full text-xs font-medium ${status.bgColor} ${status.color}`}>
+                              {status.status}
+                            </span>
+                          </td>
+                          <td className="px-8 py-6 text-gray-900 font-semibold">{formatCurrency(item.funding_goal)}</td>
+                          <td className="px-8 py-6 text-gray-900 font-semibold">{formatCurrency(item.current_funding)}</td>
+                          <td className="px-8 py-6 text-gray-700">{item.backers}</td>
+                          <td className="px-8 py-6">
+                            <button
+                              onClick={() => navigate(`/business/${item.id}/fund-statistics`)}
+                              className="inline-flex items-center gap-1.5 px-3 py-2 text-xs font-medium text-green-700 bg-green-50 rounded-md hover:bg-green-100 transition-colors border border-green-200"
+                            >
+                              View Stats
+                            </button>
+                          </td>
+                        </tr>
+                      );
+                    })}
                   </tbody>
                 </table>
               </div>

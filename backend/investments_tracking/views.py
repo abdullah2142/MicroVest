@@ -22,16 +22,30 @@ class InvestmentCreateView(generics.CreateAPIView):
         serializer = self.get_serializer(data=request.data, context={'request': request})
         serializer.is_valid(raise_exception=True)
         
-        # Create the investment record
-        investment = serializer.save()
+        user = request.user
+        business = serializer.validated_data['business']
+        amount = serializer.validated_data['amount']
         
-        # Update the business funding and backers count
-        business = investment.business
-        business.current_funding += investment.amount
-        business.backers += 1
+        # Check if user has enough funds (optional, add if needed)
+        # if user.fund < amount:
+        #     return Response({'error': 'Insufficient funds'}, status=status.HTTP_400_BAD_REQUEST)
+        # user.fund -= amount
+        # user.save(update_fields=['fund'])
+
+        investment, created = Investment.objects.get_or_create(user=user, business=business, defaults={'amount': amount})
+        if not created:
+            investment.amount += amount
+            investment.save(update_fields=['amount'])
+            new_investment = False
+        else:
+            new_investment = True
+        
+        # Update the business funding
+        business.current_funding += amount
+        if new_investment:
+            business.backers += 1
         business.save(update_fields=['current_funding', 'backers'])
         
-        # Return the updated business data
         return Response({
             'message': 'Investment successful!',
             'investment': InvestmentSerializer(investment, context={'request': request}).data,

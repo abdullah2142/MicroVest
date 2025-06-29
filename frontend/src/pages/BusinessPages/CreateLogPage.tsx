@@ -6,6 +6,8 @@ interface Business {
   id: number;
   title: string;
   entrepreneur_name: string;
+  funding_goal: number;
+  current_funding: number;
 }
 
 export default function CreateLogPage() {
@@ -126,6 +128,10 @@ export default function CreateLogPage() {
     return formData.title.trim() && formData.content.trim();
   };
 
+  const isBusinessFullyFunded = () => {
+    return business && business.current_funding === business.funding_goal;
+  };
+
   return (
     <div className="w-full max-w-[1920px] mx-auto py-8 px-8">
       {/* Header */}
@@ -147,6 +153,19 @@ export default function CreateLogPage() {
           )}
         </div>
       </div>
+
+      {!isBusinessFullyFunded() && business && (
+        <div className="mb-6 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+          <div className="flex items-center gap-2 text-yellow-700">
+            <AlertTriangle size={20} />
+            <span className="font-semibold">Funding Required</span>
+          </div>
+          <p className="text-yellow-600 mt-1">
+            This business needs to be fully funded before you can create logs. 
+            Current funding: ${business.current_funding.toLocaleString()} / ${business.funding_goal.toLocaleString()}
+          </p>
+        </div>
+      )}
 
       {error && (
         <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg">
@@ -349,7 +368,7 @@ export default function CreateLogPage() {
           </button>
           <button
             type="submit"
-            disabled={!isFormValid() || loading}
+            disabled={!isFormValid() || loading || !isBusinessFullyFunded()}
             className="inline-flex items-center gap-2 px-6 py-3 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {loading ? (

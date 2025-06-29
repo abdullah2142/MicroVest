@@ -1,7 +1,8 @@
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation, useSearchParams } from "react-router-dom";
 import Header from "../components/Header2";
-import { MessageCircle, Search, UserPlus, Send, Check, X, Users, Plus } from "lucide-react";
+import { MessageCircle, Search, UserPlus, Send, Check, X, Users, Plus, UserMinus, Trash2 } from "lucide-react";
+import Notification from '../components/Notification';
 
 interface User {
   id: number;
@@ -41,8 +42,17 @@ interface Message {
   created_at: string;
 }
 
+interface NotificationState {
+  isVisible: boolean;
+  type: 'success' | 'error' | 'warning' | 'info';
+  title: string;
+  message: string;
+}
+
 export default function MessagingPage() {
   const navigate = useNavigate();
+  const location = useLocation();
+  const [searchParams] = useSearchParams();
   const [activeTab, setActiveTab] = useState<'conversations' | 'friends' | 'friendRequests' | 'search'>('conversations');
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [friends, setFriends] = useState<User[]>([]);
@@ -55,11 +65,36 @@ export default function MessagingPage() {
   const [loading, setLoading] = useState(false);
   const [sentFriendRequests, setSentFriendRequests] = useState<number[]>([]);
   const [showFriendsModal, setShowFriendsModal] = useState(false);
+  const [showUnfriendModal, setShowUnfriendModal] = useState(false);
+  const [unfriendTarget, setUnfriendTarget] = useState<User | null>(null);
+  const [notification, setNotification] = useState<NotificationState>({
+    isVisible: false,
+    type: 'info',
+    title: '',
+    message: ''
+  });
+  const [showDeleteChatModal, setShowDeleteChatModal] = useState(false);
+  const [deleteChatTarget, setDeleteChatTarget] = useState<Conversation | null>(null);
+  const [processingUrlParam, setProcessingUrlParam] = useState(false);
+  const [processedUrlParams, setProcessedUrlParams] = useState<Set<string>>(new Set());
+
+  console.log('MessagingPage render - searchParams:', searchParams.toString(), 'location:', location.pathname + location.search);
 
   useEffect(() => {
     fetchConversations();
     fetchFriends();
     fetchFriendRequests();
+  }, []);
+
+  // Check for new friend requests periodically
+  useEffect(() => {
+    const checkNewRequests = () => {
+      fetchFriendRequests();
+    };
+    
+    const interval = setInterval(checkNewRequests, 10000); // Check every 10 seconds
+    
+    return () => clearInterval(interval);
   }, []);
 
   // Fetch all users when search tab is active
@@ -78,6 +113,92 @@ export default function MessagingPage() {
     console.log('All friend requests:', friendRequests);
     setSentFriendRequests(sentRequests);
   }, [friendRequests]);
+
+  useEffect(() => {
+    // Clear unread messages indicator when entering the messaging page
+    localStorage.setItem('hasUnreadMessages', 'false');
+    // Optionally, you could trigger a custom event or use a context to notify the navbar
+  }, []);
+
+  // Open the correct tab or chat if navigated with state
+  useEffect(() => {
+    if (location.state && location.state.openTab) {
+      setActiveTab(location.state.openTab);
+      if (location.state.openTab === 'friendRequests') {
+        setShowFriendsModal(true);
+      }
+    }
+    if (location.state && location.state.openChatWith) {
+      setActiveTab('friends');
+      const username = location.state.openChatWith;
+      const friend = friends.find(f => f.username === username || (f.first_name + ' ' + f.last_name).trim() === username);
+      if (friend) {
+        const convo = conversations.find(c => c.participants.some(p => p.id === friend.id));
+        if (convo) {
+          setShowFriendsModal(false);
+          setSelectedConversation(convo);
+          fetchMessages(convo.id);
+        }
+      }
+    }
+  }, [location.state, friends, conversations]);
+
+  // Handle user parameter from URL
+  useEffect(() => {
+    const userParam = searchParams.get('user');
+    console.log('URL parameter check:', userParam, 'processingUrlParam:', processingUrlParam, 'processedParams:', Array.from(processedUrlParams));
+    console.log('Location search:', location.search);
+    
+    // Fallback: parse URL manually if searchParams doesn't work
+    let fallbackUserParam = null;
+    if (!userParam && location.search) {
+      const urlParams = new URLSearchParams(location.search);
+      fallbackUserParam = urlParams.get('user');
+      console.log('Fallback user param:', fallbackUserParam);
+    }
+    
+    const finalUserParam = userParam || fallbackUserParam;
+    
+    if (finalUserParam && !processingUrlParam && !processedUrlParams.has(finalUserParam)) {
+      console.log('Processing URL parameter for user:', finalUserParam);
+      setProcessingUrlParam(true);
+      setProcessedUrlParams(prev => new Set([...prev, finalUserParam]));
+      const userId = parseInt(finalUserParam);
+      
+      // Try to create or get conversation with this user
+      createOrGetConversation(userId);
+      
+      // Clear the URL parameter after processing
+      const newUrl = new URL(window.location.href);
+      newUrl.searchParams.delete('user');
+      window.history.replaceState({}, '', newUrl.toString());
+      console.log('URL parameter cleared');
+    } else if (finalUserParam) {
+      console.log('Skipping URL parameter processing:', {
+        processingUrlParam,
+        alreadyProcessed: processedUrlParams.has(finalUserParam)
+      });
+    }
+  }, [searchParams, processingUrlParam, location.search, processedUrlParams]);
+
+  useEffect(() => {
+    console.log('Selected conversation changed:', selectedConversation);
+  }, [selectedConversation]);
+
+  // Reset processing state when conversations change
+  useEffect(() => {
+    if (conversations.length > 0) {
+      setProcessingUrlParam(false);
+    }
+  }, [conversations]);
+
+  // Cleanup effect when component unmounts
+  useEffect(() => {
+    return () => {
+      setProcessingUrlParam(false);
+      setProcessedUrlParams(new Set());
+    };
+  }, []);
 
   const fetchConversations = async () => {
     try {
@@ -159,7 +280,7 @@ export default function MessagingPage() {
         body: JSON.stringify({ to_user: userId }),
       });
       if (response.ok) {
-        alert('Friend request sent successfully!');
+        showNotification('success', 'Friend Request Sent', 'Friend request sent successfully!');
         setSearchQuery('');
         setSearchResults([]);
         setSentFriendRequests([...sentFriendRequests, userId]);
@@ -167,11 +288,11 @@ export default function MessagingPage() {
         fetchFriendRequests();
       } else {
         const error = await response.json();
-        alert(error.error || 'Failed to send friend request');
+        showNotification('error', 'Request Failed', error.error || 'Failed to send friend request');
       }
     } catch (error) {
       console.error('Error sending friend request:', error);
-      alert('Failed to send friend request');
+      showNotification('error', 'Request Failed', 'Failed to send friend request');
     }
   };
 
@@ -187,15 +308,75 @@ export default function MessagingPage() {
         body: JSON.stringify({ action }),
       });
       if (response.ok) {
-        alert(action === 'accept' ? 'Friend request accepted!' : 'Friend request rejected.');
+        const message = action === 'accept' ? 'Friend request accepted!' : 'Friend request rejected.';
+        const title = action === 'accept' ? 'Request Accepted' : 'Request Rejected';
+        showNotification('success', title, message);
         fetchFriendRequests();
         fetchFriends(); // Refresh friends list
         if (action === 'accept') {
           fetchConversations();
         }
+      } else {
+        const error = await response.json();
+        showNotification('error', 'Request Failed', error.error || 'Failed to process friend request');
       }
     } catch (error) {
       console.error('Error handling friend request:', error);
+      showNotification('error', 'Request Failed', 'Failed to process friend request');
+    }
+  };
+
+  const handleUnfriend = async (userId: number) => {
+    // Find the user to unfriend
+    const userToUnfriend = friends.find(friend => friend.id === userId);
+    if (userToUnfriend) {
+      setUnfriendTarget(userToUnfriend);
+      setShowUnfriendModal(true);
+    }
+  };
+
+  const confirmUnfriend = async () => {
+    if (!unfriendTarget) return;
+    
+    try {
+      const token = localStorage.getItem('authToken');
+      const response = await fetch('http://localhost:8000/api/messaging/unfriend/', {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+        body: JSON.stringify({ target_user_id: unfriendTarget.id }),
+      });
+      if (response.ok) {
+        let data = {};
+        try {
+          const text = await response.text();
+          if (text) {
+            data = JSON.parse(text);
+          }
+        } catch (e) {}
+        showNotification(
+          'success',
+          'Friend Removed',
+          data.message || `${unfriendTarget.first_name || unfriendTarget.username} has been removed from your friends.`
+        );
+        fetchFriends();
+        fetchConversations();
+        fetchFriendRequests();
+      } else {
+        let error = {};
+        try {
+          error = await response.json();
+        } catch (e) {}
+        showNotification('error', 'Remove Failed', error.error || 'Failed to remove friend');
+      }
+    } catch (error) {
+      console.error('Error removing friend:', error);
+      showNotification('error', 'Remove Failed', 'Failed to remove friend');
+    } finally {
+      setShowUnfriendModal(false);
+      setUnfriendTarget(null);
     }
   };
 
@@ -241,6 +422,9 @@ export default function MessagingPage() {
   const handleConversationSelect = (conversation: Conversation) => {
     setSelectedConversation(conversation);
     fetchMessages(conversation.id);
+    // Reset processing state when manually selecting a conversation
+    setProcessingUrlParam(false);
+    setProcessedUrlParams(new Set());
   };
 
   const getCurrentUserId = () => {
@@ -255,11 +439,79 @@ export default function MessagingPage() {
   };
 
   const hasSentFriendRequest = (userId: number) => {
-    return sentFriendRequests.includes(userId);
+    // Check if there's a pending friend request from current user to this user
+    return friendRequests.some(req => 
+      req.from_user.id.toString() === getCurrentUserId() && 
+      req.to_user.id === userId && 
+      req.status === 'pending'
+    );
   };
 
   const isFriend = (userId: number) => {
     return friends.some(friend => friend.id === userId);
+  };
+
+  const showNotification = (type: 'success' | 'error' | 'warning' | 'info', title: string, message: string) => {
+    setNotification({
+      isVisible: true,
+      type,
+      title,
+      message
+    });
+  };
+
+  const hideNotification = () => {
+    setNotification(prev => ({ ...prev, isVisible: false }));
+  };
+
+  const createOrGetConversation = async (targetUserId: number) => {
+    console.log('Creating or getting conversation for user:', targetUserId);
+    try {
+      const token = localStorage.getItem('authToken');
+      const response = await fetch('http://localhost:8000/api/messaging/conversations/create-or-get/', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+        body: JSON.stringify({ target_user_id: targetUserId }),
+      });
+      
+      if (response.ok) {
+        const conversation = await response.json();
+        console.log('Conversation created/retrieved:', conversation);
+        
+        // Add the conversation to the local state if it's not already there
+        setConversations(prevConversations => {
+          const exists = prevConversations.find(c => c.id === conversation.id);
+          if (!exists) {
+            console.log('Adding new conversation to local state');
+            return [conversation, ...prevConversations];
+          }
+          console.log('Conversation already exists in local state');
+          return prevConversations;
+        });
+        
+        // Set the selected conversation
+        console.log('Setting selected conversation:', conversation.id);
+        setSelectedConversation(conversation);
+        
+        // Fetch messages for this conversation
+        fetchMessages(conversation.id);
+        
+        // Refresh conversations list to ensure we have the latest data
+        fetchConversations();
+      } else {
+        const error = await response.json();
+        console.error('Error response:', error);
+        showNotification('error', 'Error', error.error || 'Failed to create conversation');
+      }
+    } catch (error) {
+      console.error('Error creating conversation:', error);
+      showNotification('error', 'Error', 'Failed to create conversation');
+    } finally {
+      setProcessingUrlParam(false);
+    }
   };
 
   // This check can be useful if the page is accessed directly without auth
@@ -274,9 +526,11 @@ export default function MessagingPage() {
         {/* Sidebar Header */}
         <div className="p-4 border-b border-gray-200 flex justify-between items-center">
           <h1 className="text-xl font-bold">Messages</h1>
-          <button onClick={() => setShowFriendsModal(true)} className="p-2 rounded-full hover:bg-gray-100">
-            <Plus className="w-5 h-5" />
-          </button>
+          <div className="flex gap-2">
+            <button onClick={() => setShowFriendsModal(true)} className="p-2 rounded-full hover:bg-gray-100" title="Friends & Community">
+              <Users className="w-5 h-5" />
+            </button>
+          </div>
         </div>
 
         {/* Search Bar */}
@@ -342,10 +596,40 @@ export default function MessagingPage() {
                     {getOtherParticipant(selectedConversation)?.first_name?.[0] || getOtherParticipant(selectedConversation)?.username?.[0]}
                   </span>
                 </div>
-              <div>
+              <div className="flex-1">
                 <h2 className="font-semibold">{getOtherParticipant(selectedConversation)?.first_name || getOtherParticipant(selectedConversation)?.username}</h2>
-                <p className="text-xs text-green-500">Online</p>
+                <p className="text-xs text-gray-500">{getOtherParticipant(selectedConversation)?.user_type}</p>
+                <p className={`text-xs font-semibold ${isFriend(getOtherParticipant(selectedConversation)?.id) ? 'text-green-600' : 'text-red-500'}`}>
+                  {isFriend(getOtherParticipant(selectedConversation)?.id) ? 'Friends' : 'Not Friends'}
+                </p>
               </div>
+              {isFriend(getOtherParticipant(selectedConversation)?.id) ? (
+                <button
+                  onClick={() => handleUnfriend(getOtherParticipant(selectedConversation)?.id)}
+                  className="ml-2 p-2 rounded-full hover:bg-red-50 text-red-600"
+                  title="Remove Friend"
+                >
+                  <UserMinus className="w-5 h-5" />
+                </button>
+              ) : (
+                <button
+                  onClick={() => sendFriendRequest(getOtherParticipant(selectedConversation)?.id)}
+                  className="ml-2 p-2 rounded-full hover:bg-green-50 text-green-600"
+                  title="Add Friend"
+                >
+                  <UserPlus className="w-5 h-5" />
+                </button>
+              )}
+              <button
+                onClick={() => {
+                  setDeleteChatTarget(selectedConversation);
+                  setShowDeleteChatModal(true);
+                }}
+                className="ml-4 p-2 rounded-full hover:bg-red-50 text-red-600"
+                title="Delete Chat"
+              >
+                <Trash2 className="w-5 h-5" />
+              </button>
             </div>
 
             {/* Messages */}
@@ -472,9 +756,18 @@ export default function MessagingPage() {
                                 <p className="text-gray-500 text-sm">{friend.user_type}</p>
                               </div>
                             </div>
-                            <button className="text-gray-400 hover:text-gray-600">
-                              <MessageCircle className="w-4 h-4" />
-                            </button>
+                            <div className="flex gap-2">
+                              <button className="text-gray-400 hover:text-gray-600">
+                                <MessageCircle className="w-4 h-4" />
+                              </button>
+                              <button 
+                                onClick={() => handleUnfriend(friend.id)}
+                                className="text-red-400 hover:text-red-600"
+                                title="Remove friend"
+                              >
+                                <UserMinus className="w-4 h-4" />
+                              </button>
+                            </div>
                           </div>
                         ))
                       ) : (
@@ -578,21 +871,45 @@ export default function MessagingPage() {
                               </div>
                             </div>
                             {isFriend(user.id) ? (
-                              <span className="text-sm text-green-600">Friends</span>
+                              <div className="flex gap-2">
+                                <span className="text-sm text-green-600">Friends</span>
+                                <button
+                                  onClick={() => createOrGetConversation(user.id)}
+                                  className="px-3 py-1 bg-blue-600 text-white rounded-md text-sm hover:bg-blue-700"
+                                >
+                                  Message
+                                </button>
+                              </div>
                             ) : hasSentFriendRequest(user.id) ? (
-                              <button
-                                disabled
-                                className="px-3 py-1 bg-gray-200 text-gray-500 rounded-md text-sm cursor-not-allowed"
-                              >
-                                Sent
-                              </button>
+                              <div className="flex gap-2">
+                                <button
+                                  disabled
+                                  className="px-3 py-1 bg-gray-200 text-gray-500 rounded-md text-sm cursor-not-allowed"
+                                >
+                                  Sent
+                                </button>
+                                <button
+                                  onClick={() => createOrGetConversation(user.id)}
+                                  className="px-3 py-1 bg-blue-600 text-white rounded-md text-sm hover:bg-blue-700"
+                                >
+                                  Message
+                                </button>
+                              </div>
                             ) : (
-                              <button
-                                onClick={() => sendFriendRequest(user.id)}
-                                className="px-3 py-1 bg-blue-600 text-white rounded-md text-sm hover:bg-blue-700"
-                              >
-                                Add Friend
-                              </button>
+                              <div className="flex gap-2">
+                                <button
+                                  onClick={() => sendFriendRequest(user.id)}
+                                  className="px-3 py-1 bg-gray-600 text-white rounded-md text-sm hover:bg-gray-700"
+                                >
+                                  Add Friend
+                                </button>
+                                <button
+                                  onClick={() => createOrGetConversation(user.id)}
+                                  className="px-3 py-1 bg-blue-600 text-white rounded-md text-sm hover:bg-blue-700"
+                                >
+                                  Message
+                                </button>
+                              </div>
                             )}
                           </div>
                         ))
@@ -606,6 +923,119 @@ export default function MessagingPage() {
           </div>
         </div>
       )}
+
+      {/* Unfriend Confirmation Modal */}
+      {showUnfriendModal && unfriendTarget && (
+        <div className="absolute inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg shadow-xl w-full max-w-md mx-4">
+            <div className="p-6">
+              <div className="flex items-center mb-4">
+                <div className="w-12 h-12 rounded-full bg-red-100 flex items-center justify-center mr-4">
+                  <UserMinus className="w-6 h-6 text-red-600" />
+                </div>
+                <div>
+                  <h3 className="text-lg font-semibold text-gray-900">Remove Friend</h3>
+                  <p className="text-sm text-gray-500">This action cannot be undone</p>
+                </div>
+              </div>
+              
+              <p className="text-gray-700 mb-6">
+                Are you sure you want to remove <span className="font-semibold">{unfriendTarget.first_name || unfriendTarget.username}</span> from your friends? 
+                You can still message each other, but they will no longer appear in your friends list.
+              </p>
+              
+              <div className="flex gap-3 justify-end">
+                <button
+                  onClick={() => {
+                    setShowUnfriendModal(false);
+                    setUnfriendTarget(null);
+                  }}
+                  className="px-4 py-2 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={confirmUnfriend}
+                  className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
+                >
+                  Remove Friend
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Chat Confirmation Modal */}
+      {showDeleteChatModal && deleteChatTarget && (
+        <div className="absolute inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg shadow-xl w-full max-w-md mx-4">
+            <div className="p-6">
+              <div className="flex items-center mb-4">
+                <div className="w-12 h-12 rounded-full bg-red-100 flex items-center justify-center mr-4">
+                  <Trash2 className="w-6 h-6 text-red-600" />
+                </div>
+                <div>
+                  <h3 className="text-lg font-semibold text-gray-900">Delete Chat</h3>
+                  <p className="text-sm text-gray-500">This action cannot be undone</p>
+                </div>
+              </div>
+              <p className="text-gray-700 mb-6">
+                Are you sure you want to delete this chat with <span className="font-semibold">{getOtherParticipant(deleteChatTarget)?.first_name || getOtherParticipant(deleteChatTarget)?.username}</span>?
+              </p>
+              <div className="flex gap-3 justify-end">
+                <button
+                  onClick={() => {
+                    setShowDeleteChatModal(false);
+                    setDeleteChatTarget(null);
+                  }}
+                  className="px-4 py-2 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={async () => {
+                    if (!deleteChatTarget) return;
+                    try {
+                      const token = localStorage.getItem('authToken');
+                      const response = await fetch(`http://localhost:8000/api/messaging/conversations/${deleteChatTarget.id}/delete/`, {
+                        method: 'DELETE',
+                        headers: {
+                          'Authorization': `Bearer ${token}`,
+                        },
+                      });
+                      if (response.ok) {
+                        showNotification('success', 'Chat Deleted', 'The chat was deleted successfully.');
+                        setSelectedConversation(null);
+                        fetchConversations();
+                      } else {
+                        const error = await response.json();
+                        showNotification('error', 'Delete Failed', error.error || 'Failed to delete chat');
+                      }
+                    } catch (error) {
+                      showNotification('error', 'Delete Failed', 'Failed to delete chat');
+                    } finally {
+                      setShowDeleteChatModal(false);
+                      setDeleteChatTarget(null);
+                    }
+                  }}
+                  className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
+                >
+                  Delete Chat
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      <Notification
+        isVisible={notification.isVisible}
+        type={notification.type}
+        title={notification.title}
+        message={notification.message}
+        onClose={hideNotification}
+      />
     </div>
   );
 } 

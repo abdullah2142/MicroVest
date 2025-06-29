@@ -195,7 +195,7 @@ export default function LoginPage() {
             <div className="w-10 h-10 bg-black rounded-lg flex items-center justify-center">
               <TrendingUp className="w-6 h-6 text-white" />
             </div>
-            <span className="text-2xl font-bold text-black">Microvest</span>
+            <span className="text-2xl font-bold text-black">MicroVest</span>
           </div>
         </div>
         <h2 className="mt-6 text-center text-3xl font-bold text-black">Sign in to your account</h2>

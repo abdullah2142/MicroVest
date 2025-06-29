@@ -8,7 +8,8 @@ import {
   PieChart,
   BarChart3,
   Calendar,
-  User
+  User,
+  MessageSquare
 } from "lucide-react";
 import {
   Chart as ChartJS,
@@ -331,6 +332,9 @@ export default function FundStatisticsPage() {
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Percentage
                   </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Actions
+                  </th>
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
@@ -366,6 +370,16 @@ export default function FundStatisticsPage() {
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                       {((investor.amount / statsData.summary.total_invested) * 100).toFixed(1)}%
                     </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                      <button
+                        onClick={() => navigate(`/messages?user=${investor.user_id}`)}
+                        className="inline-flex items-center gap-2 px-3 py-1.5 bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100 transition-colors"
+                        title={`Message ${investor.first_name && investor.last_name ? `${investor.first_name} ${investor.last_name}` : investor.username}`}
+                      >
+                        <MessageSquare className="h-4 w-4" />
+                        <span className="text-xs font-medium">Message</span>
+                      </button>
+                    </td>
                   </tr>
                 ))}
                 {statsData.others_amount > 0 && (
@@ -391,6 +405,9 @@ export default function FundStatisticsPage() {
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                       {((statsData.others_amount / statsData.summary.total_invested) * 100).toFixed(1)}%
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                      -
                     </td>
                   </tr>
                 )}

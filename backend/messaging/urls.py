@@ -1,8 +1,8 @@
 from django.urls import path
 from .views import (
     FriendRequestListView, CreateFriendRequestView, AcceptRejectFriendRequestView,
-    UserSearchView, FriendsListView, ConversationListView, ConversationDetailView,
-    MessageListView, MarkMessagesAsReadView
+    UserSearchView, FriendsListView, UnfriendView, ConversationListView, ConversationDetailView,
+    MessageListView, MarkMessagesAsReadView, ConversationDeleteView, CreateOrGetConversationView
 )
 
 urlpatterns = [
@@ -13,13 +13,16 @@ urlpatterns = [
     
     # Friends List
     path('friends/', FriendsListView.as_view(), name='friends-list'),
+    path('unfriend/', UnfriendView.as_view(), name='unfriend'),
     
     # User Search
     path('users/search/', UserSearchView.as_view(), name='user-search'),
     
     # Conversations
     path('conversations/', ConversationListView.as_view(), name='conversation-list'),
+    path('conversations/create-or-get/', CreateOrGetConversationView.as_view(), name='create-or-get-conversation'),
     path('conversations/<int:pk>/', ConversationDetailView.as_view(), name='conversation-detail'),
+    path('conversations/<int:pk>/delete/', ConversationDeleteView.as_view(), name='conversation-delete'),
     
     # Messages
     path('conversations/<int:conversation_id>/messages/', MessageListView.as_view(), name='message-list'),

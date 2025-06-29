@@ -10,6 +10,7 @@ from .serializers import (
     ConversationSerializer, MessageSerializer, CreateMessageSerializer,
     UserSerializer
 )
+from rest_framework import serializers
 
 User = get_user_model()
 
@@ -30,6 +31,23 @@ class CreateFriendRequestView(generics.CreateAPIView):
     permission_classes = [IsAuthenticated]
     
     def perform_create(self, serializer):
+        # Check if a friend request already exists between these users
+        existing_request = FriendRequest.objects.filter(
+            from_user=self.request.user,
+            to_user=serializer.validated_data['to_user']
+        ).first()
+        
+        if existing_request:
+            # If request exists and was rejected, update it to pending
+            if existing_request.status == 'rejected':
+                existing_request.status = 'pending'
+                existing_request.save()
+                return
+            # If request is pending or accepted, don't create a new one
+            elif existing_request.status in ['pending', 'accepted']:
+                raise serializers.ValidationError("A friend request already exists with this user.")
+        
+        # Create new friend request
         serializer.save(from_user=self.request.user)
 
 class AcceptRejectFriendRequestView(generics.UpdateAPIView):
@@ -106,6 +124,36 @@ class FriendsListView(generics.ListAPIView):
         
         return User.objects.filter(id__in=friend_ids)
 
+class UnfriendView(generics.DestroyAPIView):
+    permission_classes = [IsAuthenticated]
+    queryset = FriendRequest.objects.all()
+    
+    def destroy(self, request, *args, **kwargs):
+        target_user_id = request.data.get('target_user_id')
+        if not target_user_id:
+            return Response(
+                {"error": "target_user_id is required"}, 
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        friend_request = FriendRequest.objects.filter(
+            Q(from_user=request.user, to_user_id=target_user_id) | 
+            Q(from_user_id=target_user_id, to_user=request.user),
+            status='accepted'
+        ).first()
+        if not friend_request:
+            # Return 200 with a message even if already unfriended
+            return Response({"message": "No friendship found or already removed."}, status=status.HTTP_200_OK)
+        friend_request.delete()
+        from .models import Conversation
+        conversation = Conversation.objects.filter(
+            participants=request.user
+        ).filter(
+            participants_id=target_user_id
+        ).first()
+        if conversation:
+            conversation.delete()
+        return Response({"message": "Friend removed successfully"}, status=status.HTTP_200_OK)
+
 # Conversation Views
 class ConversationListView(generics.ListAPIView):
     serializer_class = ConversationSerializer
@@ -171,3 +219,52 @@ class MarkMessagesAsReadView(generics.UpdateAPIView):
         ).update(is_read=True)
         
         return Response({"message": "Messages marked as read."}, status=status.HTTP_200_OK)
+
+class ConversationDeleteView(generics.DestroyAPIView):
+    permission_classes = [IsAuthenticated]
+    queryset = Conversation.objects.all()
+
+    def delete(self, request, *args, **kwargs):
+        conversation_id = kwargs.get('pk')
+        conversation = Conversation.objects.filter(id=conversation_id, participants=request.user).first()
+        if not conversation:
+            return Response({"error": "Conversation not found or you are not a participant."}, status=status.HTTP_404_NOT_FOUND)
+        conversation.delete()
+        return Response({"message": "Conversation deleted successfully."}, status=status.HTTP_200_OK)
+
+class CreateOrGetConversationView(generics.GenericAPIView):
+    permission_classes = [IsAuthenticated]
+    
+    def post(self, request, *args, **kwargs):
+        target_user_id = request.data.get('target_user_id')
+        if not target_user_id:
+            return Response(
+                {"error": "target_user_id is required"}, 
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        try:
+            target_user = User.objects.get(id=target_user_id)
+        except User.DoesNotExist:
+            return Response(
+                {"error": "Target user not found"}, 
+                status=status.HTTP_404_NOT_FOUND
+            )
+        
+        # Check if conversation already exists between these users
+        existing_conversation = Conversation.objects.filter(
+            participants=request.user
+        ).filter(
+            participants=target_user
+        ).first()
+        
+        if existing_conversation:
+            # Return existing conversation
+            serializer = ConversationSerializer(existing_conversation, context={'request': request})
+            return Response(serializer.data, status=status.HTTP_200_OK)
+        else:
+            # Create new conversation
+            conversation = Conversation.objects.create()
+            conversation.participants.add(request.user, target_user)
+            serializer = ConversationSerializer(conversation, context={'request': request})
+            return Response(serializer.data, status=status.HTTP_201_CREATED)

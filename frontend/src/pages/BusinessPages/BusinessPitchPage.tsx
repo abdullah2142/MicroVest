@@ -361,125 +361,127 @@ const BusinessPitchPage = () => {
   return (
     <div className="absolute inset-0 top-16 bg-black overflow-y-auto">
       <main className="w-full px-4 py-8">
-        <div className="text-center mb-12">
-          <h2 className="text-4xl font-bold text-white mb-4">Submit Your Business Pitch</h2>
-          <p className="text-xl text-gray-300 mb-2">Present your business idea to potential investors</p>
-          <p className="text-gray-400">
-            Fill out the form below to get your business featured on our investment platform
-          </p>
-        </div>
-
-        <form onSubmit={handleSubmit} className="space-y-8 w-full">
-          <div className="bg-gray-900 p-6 rounded-lg border border-gray-700">
-            <h3 className="text-2xl font-bold text-white mb-6 flex items-center">
-                <svg className="h-6 w-6 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-                Basic Information
-            </h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div>
-                <label className="block text-sm font-medium text-gray-300 mb-2">Business Name *</label>
-                <input type="text" name="businessName" value={formData.businessName} onChange={handleInputChange} required className="w-full p-3 bg-gray-800 border border-gray-600 rounded-md text-white placeholder-gray-400 focus:border-white focus:outline-none" placeholder="Enter your business name" />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-300 mb-2">Tagline</label>
-                <input type="text" name="tagline" value={formData.tagline} onChange={handleInputChange} className="w-full p-3 bg-gray-800 border border-gray-600 rounded-md text-white placeholder-gray-400 focus:border-white focus:outline-none" placeholder="Brief catchy tagline" />
-              </div>
-              <div className="md:col-span-2">
-                <label className="block text-sm font-medium text-gray-300 mb-2">Business Description *</label>
-                <textarea name="description" value={formData.description} onChange={handleInputChange} required rows={4} className="w-full p-3 bg-gray-800 border border-gray-600 rounded-md text-white placeholder-gray-400 focus:border-white focus:outline-none" placeholder="Describe your business, what problem it solves, and your target market" />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-300 mb-2">Category *</label>
-                <select name="category" value={formData.category} onChange={handleInputChange} required className="w-full p-3 bg-gray-800 border border-gray-600 rounded-md text-white focus:border-white focus:outline-none">
-                  <option value="">Select a category</option>
-                  {categories.map((category) => ( <option key={category} value={category}> {category} </option> ))}
-                </select>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-300 mb-2">Location *</label>
-                <input type="text" name="location" value={formData.location} onChange={handleInputChange} required className="w-full p-3 bg-gray-800 border border-gray-600 rounded-md text-white placeholder-gray-400 focus:border-white focus:outline-none" placeholder="City, State"/>
-              </div>
-            </div>
-          </div>
-          <div className="bg-gray-900 p-6 rounded-lg border border-gray-700">
-             <h3 className="text-2xl font-bold text-white mb-6 flex items-center">
-                <svg className="h-6 w-6 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1" /></svg>
-                Funding Details
-            </h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div>
-                <label className="block text-sm font-medium text-gray-300 mb-2">Funding Goal ($) *</label>
-                <input type="number" name="fundingGoal" value={formData.fundingGoal} onChange={handleInputChange} required min="1000" className="w-full p-3 bg-gray-800 border border-gray-600 rounded-md text-white placeholder-gray-400 focus:border-white focus:outline-none" placeholder="50000" />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-300 mb-2">Minimum Investment ($) *</label>
-                <input type="number" name="minInvestment" value={formData.minInvestment} onChange={handleInputChange} required min="50" className="w-full p-3 bg-gray-800 border border-gray-600 rounded-md text-white placeholder-gray-400 focus:border-white focus:outline-none" placeholder="100" />
-              </div>
-            </div>
-          </div>
-          <div className="bg-gray-900 p-6 rounded-lg border border-gray-700">
-             <h3 className="text-2xl font-bold text-white mb-6 flex items-center">
-                <svg className="h-6 w-6 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0z" /></svg>
-                Business Details
-            </h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div>
-                    <label className="block text-sm font-medium text-gray-300 mb-2">Team Size</label>
-                    <input type="number" name="teamSize" value={formData.teamSize} onChange={handleInputChange} min="1" className="w-full p-3 bg-gray-800 border border-gray-600 rounded-md text-white placeholder-gray-400 focus:border-white focus:outline-none" placeholder="5" />
-                </div>
-                <div>
-                    <label className="block text-sm font-medium text-gray-300 mb-2">Website</label>
-                    <input type="url" name="website" value={formData.website} onChange={handleInputChange} className="w-full p-3 bg-gray-800 border border-gray-600 rounded-md text-white placeholder-gray-400 focus:border-white focus:outline-none" placeholder="https://yourbusiness.com" />
-                </div>
-                <div className="md:col-span-2">
-                    <label className="block text-sm font-medium text-gray-300 mb-2">Social Media</label>
-                    <input type="text" name="socialMedia" value={formData.socialMedia} onChange={handleInputChange} className="w-full p-3 bg-gray-800 border border-gray-600 rounded-md text-white placeholder-gray-400 focus:border-white focus:outline-none" placeholder="@yourbusiness" />
-                </div>
-            </div>
-          </div>
-
-          <div className="bg-gray-900 p-6 rounded-lg border border-gray-700">
-            <h3 className="text-2xl font-bold text-white mb-6">Detailed Information</h3>
-            <div className="space-y-6">
-                <div>
-                    <label className="block text-sm font-medium text-gray-300 mb-2">Business Plan Summary *</label>
-                    <textarea name="businessPlan" value={formData.businessPlan} onChange={handleInputChange} required rows={4} className="w-full p-3 bg-gray-800 border border-gray-600 rounded-md text-white placeholder-gray-400 focus:border-white focus:outline-none" placeholder="Provide a detailed summary of your business plan..."/>
-                </div>
-                <div>
-                    <label className="block text-sm font-medium text-gray-300 mb-2">Financial Projections *</label>
-                    <textarea name="financialProjections" value={formData.financialProjections} onChange={handleInputChange} required rows={3} className="w-full p-3 bg-gray-800 border border-gray-600 rounded-md text-white placeholder-gray-400 focus:border-white focus:outline-none" placeholder="Describe your revenue projections..."/>
-                </div>
-                <div>
-                    <label className="block text-sm font-medium text-gray-300 mb-2">Market Analysis *</label>
-                    <textarea name="marketAnalysis" value={formData.marketAnalysis} onChange={handleInputChange} required rows={3} className="w-full p-3 bg-gray-800 border border-gray-600 rounded-md text-white placeholder-gray-400 focus:border-white focus:outline-none" placeholder="Explain your target market..."/>
-                </div>
-                <div>
-                    <label className="block text-sm font-medium text-gray-300 mb-2">Competitive Advantage *</label>
-                    <textarea name="competitiveAdvantage" value={formData.competitiveAdvantage} onChange={handleInputChange} required rows={3} className="w-full p-3 bg-gray-800 border border-gray-600 rounded-md text-white placeholder-gray-400 focus:border-white focus:outline-none" placeholder="What makes your business unique?"/>
-                </div>
-                <div>
-                    <label className="block text-sm font-medium text-gray-300 mb-2">Use of Funds *</label>
-                    <textarea name="useOfFunds" value={formData.useOfFunds} onChange={handleInputChange} required rows={3} className="w-full p-3 bg-gray-800 border border-gray-600 rounded-md text-white placeholder-gray-400 focus:border-white focus:outline-none" placeholder="How will you use the investment funds?"/>
-                </div>
-            </div>
-          </div>
-          <div className="bg-gray-900 p-6 rounded-lg border border-gray-700">
-            <h3 className="text-2xl font-bold text-white mb-6">Supporting Materials</h3>
-            <div className="space-y-8">
-                <FileUploadArea type="images" title="Business Images" description="Upload photos of your business, products, or team" acceptedTypes="image/*" icon={ImageIcon} />
-                <FileUploadArea type="videos" title="Pitch Videos" description="Upload your pitch video or product demonstrations" acceptedTypes="video/*" icon={VideoIcon} />
-                <FileUploadArea type="documents" title="Business Documents" description="Upload business plan, financial statements..." acceptedTypes=".pdf,.doc,.docx,.txt" icon={FileTextIcon} />
-            </div>
-          </div>
-          <div className="text-center pt-8">
-            <button type="submit" className="px-8 py-4 bg-white text-black text-lg font-semibold rounded-md hover:bg-gray-200 transition-colors">
-              Submit Business Pitch
-            </button>
-            <p className="text-gray-400 text-sm mt-4">
-              By submitting, you agree to our terms and conditions. We'll review your pitch within 48 hours.
+        <div className="max-w-4xl mx-auto">
+          <div className="text-center mb-12">
+            <h2 className="text-4xl font-bold text-white mb-4">Submit Your Business Pitch</h2>
+            <p className="text-xl text-gray-300 mb-2">Present your business idea to potential investors</p>
+            <p className="text-gray-400">
+              Fill out the form below to get your business featured on our investment platform
             </p>
           </div>
-        </form>
+
+          <form onSubmit={handleSubmit} className="space-y-8 w-full">
+            <div className="bg-gray-900 p-6 rounded-lg border border-gray-700">
+              <h3 className="text-2xl font-bold text-white mb-6 flex items-center">
+                  <svg className="h-6 w-6 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                  Basic Information
+              </h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                  <label className="block text-sm font-medium text-gray-300 mb-2">Business Name *</label>
+                  <input type="text" name="businessName" value={formData.businessName} onChange={handleInputChange} required className="w-full p-3 bg-gray-800 border border-gray-600 rounded-md text-white placeholder-gray-400 focus:border-white focus:outline-none" placeholder="Enter your business name" />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-300 mb-2">Tagline</label>
+                  <input type="text" name="tagline" value={formData.tagline} onChange={handleInputChange} className="w-full p-3 bg-gray-800 border border-gray-600 rounded-md text-white placeholder-gray-400 focus:border-white focus:outline-none" placeholder="Brief catchy tagline" />
+                </div>
+                <div className="md:col-span-2">
+                  <label className="block text-sm font-medium text-gray-300 mb-2">Business Description *</label>
+                  <textarea name="description" value={formData.description} onChange={handleInputChange} required rows={4} className="w-full p-3 bg-gray-800 border border-gray-600 rounded-md text-white placeholder-gray-400 focus:border-white focus:outline-none" placeholder="Describe your business, what problem it solves, and your target market" />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-300 mb-2">Category *</label>
+                  <select name="category" value={formData.category} onChange={handleInputChange} required className="w-full p-3 bg-gray-800 border border-gray-600 rounded-md text-white focus:border-white focus:outline-none">
+                    <option value="">Select a category</option>
+                    {categories.map((category) => ( <option key={category} value={category}> {category} </option> ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-300 mb-2">Location *</label>
+                  <input type="text" name="location" value={formData.location} onChange={handleInputChange} required className="w-full p-3 bg-gray-800 border border-gray-600 rounded-md text-white placeholder-gray-400 focus:border-white focus:outline-none" placeholder="City, State"/>
+                </div>
+              </div>
+            </div>
+            <div className="bg-gray-900 p-6 rounded-lg border border-gray-700">
+               <h3 className="text-2xl font-bold text-white mb-6 flex items-center">
+                  <svg className="h-6 w-6 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1" /></svg>
+                  Funding Details
+              </h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                  <label className="block text-sm font-medium text-gray-300 mb-2">Funding Goal ($) *</label>
+                  <input type="number" name="fundingGoal" value={formData.fundingGoal} onChange={handleInputChange} required min="1000" className="w-full p-3 bg-gray-800 border border-gray-600 rounded-md text-white placeholder-gray-400 focus:border-white focus:outline-none" placeholder="50000" />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-300 mb-2">Minimum Investment ($) *</label>
+                  <input type="number" name="minInvestment" value={formData.minInvestment} onChange={handleInputChange} required min="50" className="w-full p-3 bg-gray-800 border border-gray-600 rounded-md text-white placeholder-gray-400 focus:border-white focus:outline-none" placeholder="100" />
+                </div>
+              </div>
+            </div>
+            <div className="bg-gray-900 p-6 rounded-lg border border-gray-700">
+               <h3 className="text-2xl font-bold text-white mb-6 flex items-center">
+                  <svg className="h-6 w-6 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0z" /></svg>
+                  Business Details
+              </h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div>
+                      <label className="block text-sm font-medium text-gray-300 mb-2">Team Size</label>
+                      <input type="number" name="teamSize" value={formData.teamSize} onChange={handleInputChange} min="1" className="w-full p-3 bg-gray-800 border border-gray-600 rounded-md text-white placeholder-gray-400 focus:border-white focus:outline-none" placeholder="5" />
+                  </div>
+                  <div>
+                      <label className="block text-sm font-medium text-gray-300 mb-2">Website</label>
+                      <input type="url" name="website" value={formData.website} onChange={handleInputChange} className="w-full p-3 bg-gray-800 border border-gray-600 rounded-md text-white placeholder-gray-400 focus:border-white focus:outline-none" placeholder="https://yourbusiness.com" />
+                  </div>
+                  <div className="md:col-span-2">
+                      <label className="block text-sm font-medium text-gray-300 mb-2">Social Media</label>
+                      <input type="text" name="socialMedia" value={formData.socialMedia} onChange={handleInputChange} className="w-full p-3 bg-gray-800 border border-gray-600 rounded-md text-white placeholder-gray-400 focus:border-white focus:outline-none" placeholder="@yourbusiness" />
+                  </div>
+              </div>
+            </div>
+
+            <div className="bg-gray-900 p-6 rounded-lg border border-gray-700">
+              <h3 className="text-2xl font-bold text-white mb-6">Detailed Information</h3>
+              <div className="space-y-6">
+                  <div>
+                      <label className="block text-sm font-medium text-gray-300 mb-2">Business Plan Summary *</label>
+                      <textarea name="businessPlan" value={formData.businessPlan} onChange={handleInputChange} required rows={4} className="w-full p-3 bg-gray-800 border border-gray-600 rounded-md text-white placeholder-gray-400 focus:border-white focus:outline-none" placeholder="Provide a detailed summary of your business plan..."/>
+                  </div>
+                  <div>
+                      <label className="block text-sm font-medium text-gray-300 mb-2">Financial Projections *</label>
+                      <textarea name="financialProjections" value={formData.financialProjections} onChange={handleInputChange} required rows={3} className="w-full p-3 bg-gray-800 border border-gray-600 rounded-md text-white placeholder-gray-400 focus:border-white focus:outline-none" placeholder="Describe your revenue projections..."/>
+                  </div>
+                  <div>
+                      <label className="block text-sm font-medium text-gray-300 mb-2">Market Analysis *</label>
+                      <textarea name="marketAnalysis" value={formData.marketAnalysis} onChange={handleInputChange} required rows={3} className="w-full p-3 bg-gray-800 border border-gray-600 rounded-md text-white placeholder-gray-400 focus:border-white focus:outline-none" placeholder="Explain your target market..."/>
+                  </div>
+                  <div>
+                      <label className="block text-sm font-medium text-gray-300 mb-2">Competitive Advantage *</label>
+                      <textarea name="competitiveAdvantage" value={formData.competitiveAdvantage} onChange={handleInputChange} required rows={3} className="w-full p-3 bg-gray-800 border border-gray-600 rounded-md text-white placeholder-gray-400 focus:border-white focus:outline-none" placeholder="What makes your business unique?"/>
+                  </div>
+                  <div>
+                      <label className="block text-sm font-medium text-gray-300 mb-2">Use of Funds *</label>
+                      <textarea name="useOfFunds" value={formData.useOfFunds} onChange={handleInputChange} required rows={3} className="w-full p-3 bg-gray-800 border border-gray-600 rounded-md text-white placeholder-gray-400 focus:border-white focus:outline-none" placeholder="How will you use the investment funds?"/>
+                  </div>
+              </div>
+            </div>
+            <div className="bg-gray-900 p-6 rounded-lg border border-gray-700">
+              <h3 className="text-2xl font-bold text-white mb-6">Supporting Materials</h3>
+              <div className="space-y-8">
+                  <FileUploadArea type="images" title="Business Images" description="Upload photos of your business, products, or team" acceptedTypes="image/*" icon={ImageIcon} />
+                  <FileUploadArea type="videos" title="Pitch Videos" description="Upload your pitch video or product demonstrations" acceptedTypes="video/*" icon={VideoIcon} />
+                  <FileUploadArea type="documents" title="Business Documents" description="Upload business plan, financial statements..." acceptedTypes=".pdf,.doc,.docx,.txt" icon={FileTextIcon} />
+              </div>
+            </div>
+            <div className="text-center pt-8">
+              <button type="submit" className="px-8 py-4 bg-white text-black text-lg font-semibold rounded-md hover:bg-gray-200 transition-colors">
+                Submit Business Pitch
+              </button>
+              <p className="text-gray-400 text-sm mt-4">
+                By submitting, you agree to our terms and conditions. We'll review your pitch within 48 hours.
+              </p>
+            </div>
+          </form>
+        </div>
       </main>
 
       <footer className="border-t border-gray-800 bg-gray-900 mt-16">

@@ -130,7 +130,7 @@ class BusinessListSerializer(serializers.ModelSerializer):
         fields = [
             'id', 'title', 'description', 'category', 'location',
             'funding_goal', 'current_funding', 'backers',
-            'min_investment', 'image'
+            'min_investment', 'image', 'user'
         ]
 
     def get_image(self, obj):
@@ -147,6 +147,7 @@ class BusinessDetailSerializer(serializers.ModelSerializer):
     videos = BusinessVideoSerializer(many=True, read_only=True)
     documents = BusinessDocumentSerializer(many=True, read_only=True)
     entrepreneur_full_name = serializers.SerializerMethodField()
+    entrepreneur_user_id = serializers.SerializerMethodField()
 
     class Meta:
         model = Business
@@ -159,6 +160,11 @@ class BusinessDetailSerializer(serializers.ModelSerializer):
         if obj.entrepreneur_name:
             return obj.entrepreneur_name
         return "Unknown Entrepreneur"
+
+    def get_entrepreneur_user_id(self, obj):
+        if obj.user:
+            return obj.user.id
+        return None
 
 class InvestmentSerializer(serializers.Serializer):
     """

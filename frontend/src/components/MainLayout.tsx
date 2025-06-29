@@ -13,7 +13,7 @@ const MainLayout: React.FC = () => {
     return (
         <div className="flex flex-col min-h-screen bg-gray-100">
             <Navbar />
-            <main className="flex-1 flex">
+            <main className="flex-1 flex pt-20">
                 <Outlet />
             </main>
         </div>

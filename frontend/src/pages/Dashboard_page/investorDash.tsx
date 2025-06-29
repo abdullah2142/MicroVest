@@ -19,6 +19,9 @@ import {
   Briefcase,
   User,
   LogOut,
+  Landmark,
+  Coins,
+  Banknote
 } from "lucide-react"
 
 // Interface for individual recent investment
@@ -305,9 +308,16 @@ export default function InvestorDashboard() {
         <Sidebar active="Overview" />
 
         {/* Main Content */}
-        <main className="flex-1 flex flex-col xl:flex-row xl:gap-8 p-6 xl:p-8">
+        <main className="flex-1 flex flex-col lg:flex-row lg:gap-8 p-6 lg:p-8">
           {/* Center Main Area */}
-          <section className="flex-1 min-w-0">
+          <section className="flex-1">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-10 gap-4"> 
+              <h1 className="text-4xl font-bold text-gray-900">Dashboard</h1>
+              <div className="flex gap-4">
+                <button onClick={() => navigate('/my-investments')} className="bg-gray-100 text-gray-900 px-6 py-3 rounded-full font-semibold shadow-[0_4px_20px_rgba(0,0,0,0.08)] hover:bg-gray-200 transition">View My Investments</button>
+              </div>
+            </div>
+
             {/* Profile Section */}
             <div className="bg-white rounded-2xl shadow-[0_8px_30px_rgba(0,0,0,0.08)] p-8 mb-10">
               <div className="flex items-center gap-6">
@@ -381,7 +391,7 @@ export default function InvestorDashboard() {
               <div className="flex items-center justify-between mb-6">
                 <h3 className="text-xl font-bold text-gray-900">Recent Investments (Business & Amount)</h3>
                 <button
-                  onClick={() => navigate("/investment-details")}
+                  onClick={() => navigate("/my-investments")}
                   className="text-blue-600 hover:text-blue-700 font-medium"
                 >
                   View All

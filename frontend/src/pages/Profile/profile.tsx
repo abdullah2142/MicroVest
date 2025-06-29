@@ -66,6 +66,8 @@ export default function ProfilePage() {
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [profileImage, setProfileImage] = useState<string | null>(null);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const navigate = useNavigate();
 
@@ -408,6 +410,60 @@ export default function ProfilePage() {
     }
   };
 
+  const handleDeleteAccount = async () => {
+    const confirmed = window.confirm(
+      'Are you sure you want to delete your account? This action cannot be undone and will permanently remove all your data including businesses, investments, and messages.'
+    );
+    
+    if (!confirmed) return;
+    
+    setIsDeleting(true);
+    try {
+      const response = await fetch(`${API_BASE_URL}/users/delete-account/`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${user.authToken}`,
+          'Content-Type': 'application/json'
+        }
+      });
+
+      if (response.ok) {
+        // Clear localStorage
+        localStorage.removeItem('authToken');
+        localStorage.removeItem('userType');
+        localStorage.removeItem('username');
+        localStorage.removeItem('email');
+        localStorage.removeItem('first_name');
+        localStorage.removeItem('last_name');
+        localStorage.removeItem('phone_number');
+        localStorage.removeItem('prof_pic');
+
+        // Reset user state
+        setUser({
+          isAuthenticated: false,
+          authToken: null,
+          userType: null,
+          username: null,
+          email: null,
+          first_name: null,
+          last_name: null,
+          phone_number: null,
+          prof_pic: null,
+        });
+
+        navigate('/login');
+      } else {
+        const errorData = await response.json();
+        setErrors(prev => ({ ...prev, general: errorData.error || 'Failed to delete account. Please try again.' }));
+      }
+    } catch (error) {
+      console.error('Account deletion error:', error);
+      setErrors(prev => ({ ...prev, general: 'Network error. Please check your connection and try again.' }));
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
   // Show loading state while checking authentication
   if (isLoading) {
     return (
@@ -732,6 +788,51 @@ export default function ProfilePage() {
                     </button>
                   </div>
                 )}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Settings Section */}
+        <div className="mt-8">
+          <div className="bg-white border border-gray-200 rounded-lg shadow-sm">
+            <div className="p-6 border-b border-gray-200">
+              <h3 className="text-lg font-semibold text-gray-900">Account Settings</h3>
+              <p className="text-gray-600 text-sm mt-1">
+                Manage your account settings and preferences
+              </p>
+            </div>
+
+            <div className="p-6">
+              <div className="space-y-6">
+                {/* Delete Account */}
+                <div className="border-t border-gray-200 pt-6">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h4 className="text-lg font-medium text-gray-900">Delete Account</h4>
+                      <p className="text-sm text-gray-600 mt-1">
+                        Permanently delete your account and all associated data. This action cannot be undone.
+                      </p>
+                    </div>
+                    <button
+                      onClick={handleDeleteAccount}
+                      disabled={isDeleting}
+                      className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 transition-colors flex items-center space-x-2 disabled:opacity-50"
+                    >
+                      {isDeleting ? (
+                        <>
+                          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                          <span>Deleting...</span>
+                        </>
+                      ) : (
+                        <>
+                          <Trash2 className="h-4 w-4" />
+                          <span>Delete Account</span>
+                        </>
+                      )}
+                    </button>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
