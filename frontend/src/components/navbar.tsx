@@ -8,6 +8,7 @@ interface Notification {
     id: number;
     message: string;
     read: boolean;
+    business_id?: number;
     investorName?: string;
     amount?: number;
     businessName?: string;
@@ -15,7 +16,7 @@ interface Notification {
 }
 
 const Navbar: React.FC = () => {
-    const { user, logout } = useUser();
+    const { user, logout, openAddFundsModal } = useUser();
     const navigate = useNavigate();
     const location = useLocation();
     const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
@@ -170,7 +171,7 @@ const Navbar: React.FC = () => {
                 {/* Right Box - Actions and User Menu */}
                 <div className="flex items-center space-x-6 flex-shrink-0">
                     {isInvestor ? (
-                         <button onClick={() => navigate('/add-funds')} className="bg-white text-black font-semibold px-5 py-2.5 rounded-lg flex items-center space-x-2 hover:bg-gray-200 hover:shadow-lg transition-all duration-200">
+                         <button onClick={openAddFundsModal} className="bg-white text-black font-semibold px-5 py-2.5 rounded-lg flex items-center space-x-2 hover:bg-gray-200 hover:shadow-lg transition-all duration-200">
                             <Plus size={18} />
                             <span>Add Funds</span>
                         </button>
@@ -277,6 +278,16 @@ const Navbar: React.FC = () => {
                                                         navigate('/messages', { state: { openChatWith: match[1].trim() } });
                                                         setIsNotificationsOpen(false);
                                                     }
+                                                } else if (notification.business_id && user.userType === 'entrepreneur' && 
+                                                          (notification.message.includes('investment') || notification.message.includes('invested'))) {
+                                                    // Navigate to fund statistics page for entrepreneurs when they receive investment notifications
+                                                    navigate(`/business/${notification.business_id}/fund-statistics`);
+                                                    setIsNotificationsOpen(false);
+                                                } else if (notification.business_id && user.userType === 'investor' && 
+                                                          (notification.message.includes('business report log') || notification.message.includes('profit distribution'))) {
+                                                    // Navigate to business detail page for investors when they receive log or profit distribution notifications
+                                                    navigate(`/business/${notification.business_id}`);
+                                                    setIsNotificationsOpen(false);
                                                 }
                                             }}
                                         >

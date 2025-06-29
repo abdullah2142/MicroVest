@@ -18,6 +18,8 @@ interface Investment {
   min_investment: number;
   image?: string;
   user: number | string;
+  user_investment_amount: number;
+  user_investment_percentage: number;
 }
 
 interface NotificationState {
@@ -60,6 +62,9 @@ export default function CataloguePage() {
     return currentUserId && String(businessUserId) === String(currentUserId);
   };
 
+  // Check if user is an entrepreneur (cannot invest in any business)
+  const isEntrepreneur = user.userType === 'entrepreneur';
+
   useEffect(() => {
     const fetchInvestments = async () => {
       setLoading(true);
@@ -74,11 +79,25 @@ export default function CataloguePage() {
         }
         url.searchParams.append("sort_by", sortBy);
 
-        const response = await fetch(url.toString());
+        // Get authentication token
+        const token = localStorage.getItem('authToken');
+        const headers: HeadersInit = {
+          'Content-Type': 'application/json',
+        };
+        
+        // Add authorization header if token exists
+        if (token) {
+          headers['Authorization'] = `Bearer ${token}`;
+        }
+
+        const response = await fetch(url.toString(), {
+          headers: headers
+        });
         if (!response.ok) {
           throw new Error(`HTTP error! status: ${response.status}`);
         }
         const data = await response.json();
+        console.log('Fetched business data:', data); // Debug log
         setInvestments(data.results || data); // DRF ListAPIView might return { "results": [...], "count": ... }
       } catch (e) {
         setError("Failed to fetch investments: " + (e instanceof Error ? e.message : 'Unknown error'));
@@ -89,6 +108,15 @@ export default function CataloguePage() {
 
     fetchInvestments();
   }, [searchTerm, selectedCategory, sortBy]); // Re-fetch when these dependencies change
+
+  // Debug effect to log investment data
+  useEffect(() => {
+    investments.forEach(investment => {
+      if (investment.user_investment_amount > 0) {
+        console.log(`Investment data for ${investment.title}: $${investment.user_investment_amount} (${investment.user_investment_percentage}%)`);
+      }
+    });
+  }, [investments]);
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat("en-US", {
@@ -172,18 +200,30 @@ export default function CataloguePage() {
       const result = await response.json();
       showNotification('success', 'Investment Successful', `Successfully invested ${formatCurrency(amount)}!`);
       
-      // Update the local state instead of reloading the page
-      setInvestments(prevInvestments => 
-        prevInvestments.map(inv => 
-          inv.id === selectedInvestment.id 
-            ? {
-                ...inv,
-                current_funding: result.current_funding,
-                backers: result.backers
-              }
-            : inv
-        )
-      );
+      // Refresh the entire investments list to get updated investment data
+      const refreshResponse = await fetch(`http://localhost:8000/api/businesses/?sort_by=${sortBy}`, {
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        }
+      });
+      if (refreshResponse.ok) {
+        const refreshedData = await refreshResponse.json();
+        setInvestments(refreshedData.results || refreshedData);
+      } else {
+        // Fallback to updating just the current investment
+        setInvestments(prevInvestments => 
+          prevInvestments.map(inv => 
+            inv.id === selectedInvestment.id 
+              ? {
+                  ...inv,
+                  current_funding: result.current_funding,
+                  backers: result.backers
+                }
+              : inv
+          )
+        );
+      }
       
       setShowInvestmentModal(false);
       setSelectedInvestment(null);
@@ -279,18 +319,49 @@ export default function CataloguePage() {
                         <div className="flex justify-between text-sm"><span className="text-gray-400">Progress</span><span className="text-white">{calculateProgress(investment.current_funding, investment.funding_goal).toFixed(1)}%</span></div>
                         <div className="flex justify-between text-sm"><span className="text-gray-400">Backers</span><span className="text-white">{investment.backers}</span></div>
                         <div className="flex justify-between text-sm"><span className="text-gray-400">Min Investment</span><span className="text-white">{formatCurrency(investment.min_investment)}</span></div>
+                        {investment.user_investment_amount > 0 && (
+                          <>
+                            <div className="flex justify-between text-sm">
+                              <span className="text-gray-400">Your Investment</span>
+                              <span className="text-emerald-400 font-medium">{formatCurrency(investment.user_investment_amount)}</span>
+                            </div>
+                            <div className="flex justify-between text-sm">
+                              <span className="text-gray-400">Your Share</span>
+                              <span className="text-emerald-400 font-medium">{investment.user_investment_percentage}%</span>
+                            </div>
+                          </>
+                        )}
                       </div>
                       <div className="mt-6 flex gap-3">
                         {isOwner(investment) ? (
-                          <button disabled className="flex-1 bg-gray-600 text-gray-300 py-2 px-4 rounded-md cursor-not-allowed font-medium">
+                          <button
+                            onClick={() => navigate(`/business/${investment.id}`)}
+                            className="flex-1 bg-blue-600 hover:bg-blue-700 text-white py-2 px-4 rounded-md transition-colors font-medium"
+                          >
                             Your Business
                           </button>
+                        ) : isEntrepreneur ? (
+                          <button
+                            onClick={() => navigate(`/messages?user=${investment.user}`)}
+                            className="flex-1 bg-blue-600 hover:bg-blue-700 text-white py-2 px-4 rounded-md transition-colors font-medium"
+                            title="Message the business owner"
+                          >
+                            Message Owner
+                          </button>
                         ) : (
-                          <button onClick={() => handleInvestNow(investment)} className="flex-1 bg-emerald-600 text-white py-2 px-4 rounded-md hover:bg-emerald-700 transition-colors font-medium">
-                            Invest Now
+                          <button
+                            onClick={() => handleInvestNow(investment)}
+                            className="flex-1 bg-emerald-600 text-white py-2 px-4 rounded-md hover:bg-emerald-700 transition-colors font-medium"
+                          >
+                            {investment.user_investment_amount > 0 ? 'Invest More' : 'Invest Now'}
                           </button>
                         )}
-                        <button onClick={() => handleViewDetails(investment.id)} className="flex-1 bg-gray-700 text-white py-2 px-4 rounded-md hover:bg-gray-600 transition-colors font-medium">View Details</button>
+                        <button 
+                          onClick={() => handleViewDetails(investment.id)} 
+                          className="flex-1 bg-gray-700 text-white py-2 px-4 rounded-md hover:bg-gray-600 transition-colors font-medium"
+                        >
+                          View Details
+                        </button>
                       </div>
                     </div>
                   </div>

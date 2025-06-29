@@ -8,6 +8,7 @@ class Notification(models.Model):
     message = models.TextField()
     read = models.BooleanField(default=False)
     created_at = models.DateTimeField(auto_now_add=True)
+    business = models.ForeignKey('investments.Business', on_delete=models.CASCADE, null=True, blank=True, related_name='notifications')
 
     def __str__(self):
         return f"Notification for {self.recipient.username}: {self.message}"

@@ -30,6 +30,12 @@ class InvestAPIView(generics.GenericAPIView):
 
     @transaction.atomic
     def post(self, request, *args, **kwargs):
+        # Check if user is an entrepreneur - they cannot invest in any business
+        if request.user.user_type == 'entrepreneur':
+            return Response({
+                'error': 'Entrepreneurs cannot invest in other businesses. Focus on growing your own business!'
+            }, status=status.HTTP_403_FORBIDDEN)
+        
         serializer = self.get_serializer(data=request.data, context={'request': request})
         serializer.is_valid(raise_exception=True)
         

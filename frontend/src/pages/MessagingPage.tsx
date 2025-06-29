@@ -75,8 +75,7 @@ export default function MessagingPage() {
   });
   const [showDeleteChatModal, setShowDeleteChatModal] = useState(false);
   const [deleteChatTarget, setDeleteChatTarget] = useState<Conversation | null>(null);
-  const [processingUrlParam, setProcessingUrlParam] = useState(false);
-  const [processedUrlParams, setProcessedUrlParams] = useState<Set<string>>(new Set());
+  const [urlParamProcessed, setUrlParamProcessed] = useState(false);
 
   console.log('MessagingPage render - searchParams:', searchParams.toString(), 'location:', location.pathname + location.search);
 
@@ -143,10 +142,17 @@ export default function MessagingPage() {
     }
   }, [location.state, friends, conversations]);
 
+  // Helper: Find a conversation by user ID
+  const findConversationByUserId = (userId: number) => {
+    return conversations.find(convo =>
+      convo.participants.some(p => p.id === userId)
+    );
+  };
+
   // Handle user parameter from URL
   useEffect(() => {
     const userParam = searchParams.get('user');
-    console.log('URL parameter check:', userParam, 'processingUrlParam:', processingUrlParam, 'processedParams:', Array.from(processedUrlParams));
+    console.log('URL parameter check:', userParam);
     console.log('Location search:', location.search);
     
     // Fallback: parse URL manually if searchParams doesn't work
@@ -159,46 +165,42 @@ export default function MessagingPage() {
     
     const finalUserParam = userParam || fallbackUserParam;
     
-    if (finalUserParam && !processingUrlParam && !processedUrlParams.has(finalUserParam)) {
+    if (finalUserParam && !urlParamProcessed) {
       console.log('Processing URL parameter for user:', finalUserParam);
-      setProcessingUrlParam(true);
-      setProcessedUrlParams(prev => new Set([...prev, finalUserParam]));
       const userId = parseInt(finalUserParam);
-      
-      // Try to create or get conversation with this user
-      createOrGetConversation(userId);
-      
+      const existingConvo = findConversationByUserId(userId);
+      if (existingConvo) {
+        setSelectedConversation(existingConvo);
+        fetchMessages(existingConvo.id);
+      } else {
+        // Try to create or get conversation with this user
+        createOrGetConversation(userId);
+      }
       // Clear the URL parameter after processing
       const newUrl = new URL(window.location.href);
       newUrl.searchParams.delete('user');
       window.history.replaceState({}, '', newUrl.toString());
       console.log('URL parameter cleared');
-    } else if (finalUserParam) {
-      console.log('Skipping URL parameter processing:', {
-        processingUrlParam,
-        alreadyProcessed: processedUrlParams.has(finalUserParam)
-      });
+      setUrlParamProcessed(true);
     }
-  }, [searchParams, processingUrlParam, location.search, processedUrlParams]);
+  }, [searchParams, location.search, urlParamProcessed, conversations]);
 
   useEffect(() => {
     console.log('Selected conversation changed:', selectedConversation);
   }, [selectedConversation]);
 
-  // Reset processing state when conversations change
-  useEffect(() => {
-    if (conversations.length > 0) {
-      setProcessingUrlParam(false);
-    }
-  }, [conversations]);
-
   // Cleanup effect when component unmounts
   useEffect(() => {
     return () => {
-      setProcessingUrlParam(false);
-      setProcessedUrlParams(new Set());
+      // Cleanup any necessary state
+      setUrlParamProcessed(false);
     };
   }, []);
+
+  // Reset URL parameter processed flag when location changes
+  useEffect(() => {
+    setUrlParamProcessed(false);
+  }, [location.pathname]);
 
   const fetchConversations = async () => {
     try {
@@ -349,7 +351,7 @@ export default function MessagingPage() {
         body: JSON.stringify({ target_user_id: unfriendTarget.id }),
       });
       if (response.ok) {
-        let data = {};
+        let data: any = {};
         try {
           const text = await response.text();
           if (text) {
@@ -365,7 +367,7 @@ export default function MessagingPage() {
         fetchConversations();
         fetchFriendRequests();
       } else {
-        let error = {};
+        let error: any = {};
         try {
           error = await response.json();
         } catch (e) {}
@@ -422,9 +424,8 @@ export default function MessagingPage() {
   const handleConversationSelect = (conversation: Conversation) => {
     setSelectedConversation(conversation);
     fetchMessages(conversation.id);
-    // Reset processing state when manually selecting a conversation
-    setProcessingUrlParam(false);
-    setProcessedUrlParams(new Set());
+    // Reset URL parameter processed flag to allow normal conversation switching
+    setUrlParamProcessed(false);
   };
 
   const getCurrentUserId = () => {
@@ -509,8 +510,6 @@ export default function MessagingPage() {
     } catch (error) {
       console.error('Error creating conversation:', error);
       showNotification('error', 'Error', 'Failed to create conversation');
-    } finally {
-      setProcessingUrlParam(false);
     }
   };
 
@@ -599,13 +598,13 @@ export default function MessagingPage() {
               <div className="flex-1">
                 <h2 className="font-semibold">{getOtherParticipant(selectedConversation)?.first_name || getOtherParticipant(selectedConversation)?.username}</h2>
                 <p className="text-xs text-gray-500">{getOtherParticipant(selectedConversation)?.user_type}</p>
-                <p className={`text-xs font-semibold ${isFriend(getOtherParticipant(selectedConversation)?.id) ? 'text-green-600' : 'text-red-500'}`}>
-                  {isFriend(getOtherParticipant(selectedConversation)?.id) ? 'Friends' : 'Not Friends'}
+                <p className={`text-xs font-semibold ${isFriend(getOtherParticipant(selectedConversation)?.id || 0) ? 'text-green-600' : 'text-red-500'}`}>
+                  {isFriend(getOtherParticipant(selectedConversation)?.id || 0) ? 'Friends' : 'Not Friends'}
                 </p>
               </div>
-              {isFriend(getOtherParticipant(selectedConversation)?.id) ? (
+              {isFriend(getOtherParticipant(selectedConversation)?.id || 0) ? (
                 <button
-                  onClick={() => handleUnfriend(getOtherParticipant(selectedConversation)?.id)}
+                  onClick={() => handleUnfriend(getOtherParticipant(selectedConversation)?.id || 0)}
                   className="ml-2 p-2 rounded-full hover:bg-red-50 text-red-600"
                   title="Remove Friend"
                 >
@@ -613,7 +612,7 @@ export default function MessagingPage() {
                 </button>
               ) : (
                 <button
-                  onClick={() => sendFriendRequest(getOtherParticipant(selectedConversation)?.id)}
+                  onClick={() => sendFriendRequest(getOtherParticipant(selectedConversation)?.id || 0)}
                   className="ml-2 p-2 rounded-full hover:bg-green-50 text-green-600"
                   title="Add Friend"
                 >
@@ -757,7 +756,17 @@ export default function MessagingPage() {
                               </div>
                             </div>
                             <div className="flex gap-2">
-                              <button className="text-gray-400 hover:text-gray-600">
+                              <button className="text-gray-400 hover:text-gray-600"
+                                onClick={() => {
+                                  const existingConvo = findConversationByUserId(friend.id);
+                                  if (existingConvo) {
+                                    setSelectedConversation(existingConvo);
+                                    fetchMessages(existingConvo.id);
+                                  } else {
+                                    createOrGetConversation(friend.id);
+                                  }
+                                }}
+                              >
                                 <MessageCircle className="w-4 h-4" />
                               </button>
                               <button 

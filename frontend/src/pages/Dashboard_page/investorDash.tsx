@@ -23,6 +23,7 @@ import {
   Coins,
   Banknote
 } from "lucide-react"
+import { useUser } from "../../context/UserContext";
 
 // Interface for individual recent investment
 interface RecentInvestment {
@@ -54,12 +55,12 @@ interface DashboardStats {
   portfolio_value: number;
 }
 
-function Sidebar({ active = "Overview" }) {
+function Sidebar({ active = "Overview", onAddFundsClick }: { active?: string; onAddFundsClick: () => void }) {
   const navigate = useNavigate();
 
   const nav = [
     { label: "Overview", icon: Home, action: () => navigate('/dashboard') }, // Navigating to /dashboard for overview
-    { label: "Add Funds", icon: DollarSign, action: () => navigate('/add-funds') },
+    { label: "Add Funds", icon: DollarSign, action: onAddFundsClick },
     // { label: "View Details", icon: Eye, action: () => navigate('/investment-details') },
     { label: "Settings", icon: Settings, action: () => navigate('/profile') },
   ];
@@ -90,6 +91,7 @@ export default function InvestorDashboard() {
   const [userData, setUserData] = useState<UserData | null>(null);
   const [profilePicture, setProfilePicture] = useState<string | null>(null); // State for profile picture URL
   const [recentInvestments, setRecentInvestments] = useState<RecentInvestment[]>([]);
+  const { openAddFundsModal } = useUser();
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -305,7 +307,7 @@ export default function InvestorDashboard() {
     <div className="min-h-screen bg-gray-50 flex flex-col">
       <div className="flex flex-1">
         {/* Sidebar */}
-        <Sidebar active="Overview" />
+        <Sidebar active="Overview" onAddFundsClick={() => openAddFundsModal()} />
 
         {/* Main Content */}
         <main className="flex-1 flex flex-col lg:flex-row lg:gap-8 p-6 lg:p-8">

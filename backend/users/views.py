@@ -104,6 +104,7 @@ class UserProfileView(APIView):
             "phone_number": user.phone_number,
             "user_type": user.user_type,
             "prof_pic": profile_picture_url,
+            "fund": str(user.fund) if user.fund else "0",  # Include fund amount
         }, status=status.HTTP_200_OK)
 
 class UserProfilePictureUploadView(APIView):
@@ -163,6 +164,7 @@ class AddFundView(APIView):
 
     def post(self, request, *args, **kwargs):
         amount_str = request.data.get('amount')
+        payment_method = request.data.get('payment_method', 'unknown')
 
         if amount_str is None:
             return Response({"error": "Amount is required."}, status=status.HTTP_400_BAD_REQUEST)
@@ -188,8 +190,9 @@ class AddFundView(APIView):
 
         # You can return the updated fund or a success message
         return Response({
-            "message": f"Successfully added {amount:.2f} to your fund.",
-            "new_fund_total": str(user.fund) # Convert Decimal to string for JSON serialization
+            "message": f"Successfully added {amount:.2f} to your fund using {payment_method}.",
+            "new_fund_total": str(user.fund), # Convert Decimal to string for JSON serialization
+            "payment_method": payment_method
         }, status=status.HTTP_200_OK)
 
 class DeleteAccountView(APIView):

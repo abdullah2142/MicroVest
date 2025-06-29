@@ -19,6 +19,11 @@ interface UserContextType {
   user: UserState;
   login: (data: any) => void; // Simplify login signature
   logout: () => void;
+  openAddFundsModal: () => void;
+  closeAddFundsModal: () => void;
+  isAddFundsModalOpen: boolean;
+  // onFundsAdded?: (newAmount: number) => void;
+  // setOnFundsAdded: (callback: ((newAmount: number) => void) | undefined) => void;
 }
 
 // Create the context
@@ -41,6 +46,9 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
     prof_pic: null,
     loading: true, // Start in a loading state
   });
+
+  const [isAddFundsModalOpen, setIsAddFundsModalOpen] = useState(false);
+  // const [onFundsAdded, setOnFundsAdded] = useState<((newAmount: number) => void) | undefined>(undefined);
 
   // Effect to load user data from localStorage on initial load
   useEffect(() => {
@@ -115,8 +123,32 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
     });
   };
 
+  // Add Funds Modal functions
+  const openAddFundsModal = () => {
+    setIsAddFundsModalOpen(true);
+  };
+
+  const closeAddFundsModal = () => {
+    setIsAddFundsModalOpen(false);
+    // Clear the callback when modal closes
+    // setOnFundsAdded(undefined);
+  };
+
+  // const setOnFundsAddedCallback = (callback: ((newAmount: number) => void) | undefined) => {
+  //   setOnFundsAdded(callback);
+  // };
+
   return (
-    <UserContext.Provider value={{ user, login, logout }}>
+    <UserContext.Provider value={{ 
+      user, 
+      login, 
+      logout, 
+      openAddFundsModal, 
+      closeAddFundsModal, 
+      isAddFundsModalOpen,
+      // onFundsAdded,
+      // setOnFundsAdded: setOnFundsAddedCallback
+    }}>
       {children}
     </UserContext.Provider>
   );

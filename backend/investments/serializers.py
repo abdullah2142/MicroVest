@@ -1,6 +1,7 @@
 # investments/serializers.py
 from rest_framework import serializers
 from .models import Business, BusinessImage, BusinessVideo, BusinessDocument, CalendarEvent
+from investments_tracking.models import Investment
 
 # --- Serializers for creating/uploading related files ---
 class BusinessImageCreateSerializer(serializers.ModelSerializer):
@@ -124,13 +125,15 @@ class BusinessDocumentSerializer(serializers.ModelSerializer):
 
 class BusinessListSerializer(serializers.ModelSerializer):
     image = serializers.SerializerMethodField()
+    user_investment_amount = serializers.SerializerMethodField()
+    user_investment_percentage = serializers.SerializerMethodField()
 
     class Meta:
         model = Business
         fields = [
             'id', 'title', 'description', 'category', 'location',
             'funding_goal', 'current_funding', 'backers',
-            'min_investment', 'image', 'user'
+            'min_investment', 'image', 'user', 'user_investment_amount', 'user_investment_percentage'
         ]
 
     def get_image(self, obj):
@@ -141,6 +144,27 @@ class BusinessListSerializer(serializers.ModelSerializer):
         # Return a simple placeholder path
         return "/placeholder.svg"
 
+    def get_user_investment_amount(self, obj):
+        request = self.context.get('request')
+        if request and request.user.is_authenticated:
+            try:
+                investment = Investment.objects.get(user=request.user, business=obj)
+                return float(investment.amount)
+            except Investment.DoesNotExist:
+                return 0
+        return 0
+
+    def get_user_investment_percentage(self, obj):
+        request = self.context.get('request')
+        if request and request.user.is_authenticated:
+            try:
+                investment = Investment.objects.get(user=request.user, business=obj)
+                if obj.funding_goal > 0:
+                    return round((float(investment.amount) / float(obj.funding_goal)) * 100, 2)
+                return 0
+            except Investment.DoesNotExist:
+                return 0
+        return 0
 
 class BusinessDetailSerializer(serializers.ModelSerializer):
     images = BusinessImageSerializer(many=True, read_only=True)
@@ -148,6 +172,8 @@ class BusinessDetailSerializer(serializers.ModelSerializer):
     documents = BusinessDocumentSerializer(many=True, read_only=True)
     entrepreneur_full_name = serializers.SerializerMethodField()
     entrepreneur_user_id = serializers.SerializerMethodField()
+    user_investment_amount = serializers.SerializerMethodField()
+    user_investment_percentage = serializers.SerializerMethodField()
 
     class Meta:
         model = Business
@@ -165,6 +191,28 @@ class BusinessDetailSerializer(serializers.ModelSerializer):
         if obj.user:
             return obj.user.id
         return None
+
+    def get_user_investment_amount(self, obj):
+        request = self.context.get('request')
+        if request and request.user.is_authenticated:
+            try:
+                investment = Investment.objects.get(user=request.user, business=obj)
+                return float(investment.amount)
+            except Investment.DoesNotExist:
+                return 0
+        return 0
+
+    def get_user_investment_percentage(self, obj):
+        request = self.context.get('request')
+        if request and request.user.is_authenticated:
+            try:
+                investment = Investment.objects.get(user=request.user, business=obj)
+                if obj.funding_goal > 0:
+                    return round((float(investment.amount) / float(obj.funding_goal)) * 100, 2)
+                return 0
+            except Investment.DoesNotExist:
+                return 0
+        return 0
 
 class InvestmentSerializer(serializers.Serializer):
     """

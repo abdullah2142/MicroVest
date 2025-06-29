@@ -65,6 +65,8 @@ interface BusinessData {
   documents: Array<{ name: string; file_url: string; size: string }>;
   user: number | string;
   deadline: string;
+  user_investment_amount: number;
+  user_investment_percentage: number;
 }
 
 interface NotificationState {
@@ -96,17 +98,32 @@ export default function BusinessDetailPage() {
 
   const currentUserId = localStorage.getItem('userId');
   const isOwner = businessData && currentUserId && businessData.user.toString() === currentUserId;
+  const isEntrepreneur = user.userType === 'entrepreneur';
 
   useEffect(() => {
     const fetchBusinessDetails = async () => {
       setLoading(true);
       setError(null);
       try {
-        const response = await fetch(`http://localhost:8000/api/businesses/${id}/`);
+        // Get authentication token
+        const token = localStorage.getItem('authToken');
+        const headers: HeadersInit = {
+          'Content-Type': 'application/json',
+        };
+        
+        // Add authorization header if token exists
+        if (token) {
+          headers['Authorization'] = `Bearer ${token}`;
+        }
+
+        const response = await fetch(`http://localhost:8000/api/businesses/${id}/`, {
+          headers: headers
+        });
         if (!response.ok) {
           throw new Error(`HTTP error! status: ${response.status}`);
         }
         const data = await response.json();
+        console.log('Fetched business detail data:', data);
         setBusinessData(data);
         setInvestmentAmount(data.min_investment.toString());
       } catch (e) {
@@ -260,18 +277,30 @@ export default function BusinessDetailPage() {
             } catch (jsonError) {
                 console.error("Error parsing successful response JSON:", jsonError);
                 showNotification('warning', 'Partial Success', "Investment succeeded but there was an issue receiving confirmation data. Please refresh.");
-                setBusinessData(prevData => prevData ? {
-                    ...prevData,
-                    current_funding: prevData.current_funding + amount,
-                } : null);
+                // Refresh business data to get updated investment info
+                const refreshResponse = await fetch(`http://localhost:8000/api/businesses/${businessData.id}/`, {
+                  headers: {
+                    'Authorization': `Bearer ${localStorage.getItem('authToken')}`
+                  }
+                });
+                if (refreshResponse.ok) {
+                    const refreshedData = await refreshResponse.json();
+                    setBusinessData(refreshedData);
+                }
                 return;
             }
         } else if (response.status === 204) {
             console.log("Investment successful, no content returned.");
-            setBusinessData(prevData => prevData ? {
-                ...prevData,
-                current_funding: prevData.current_funding + amount,
-            } : null);
+            // Refresh business data to get updated investment info
+            const refreshResponse = await fetch(`http://localhost:8000/api/businesses/${businessData.id}/`, {
+              headers: {
+                'Authorization': `Bearer ${localStorage.getItem('authToken')}`
+              }
+            });
+            if (refreshResponse.ok) {
+                const refreshedData = await refreshResponse.json();
+                setBusinessData(refreshedData);
+            }
             showNotification('success', 'Investment Successful', `Investment of ${formatCurrency(amount)} successful! Thank you for backing ${businessData.title}!`);
             return;
         } else {
@@ -282,11 +311,23 @@ export default function BusinessDetailPage() {
 
         console.log("Investment successful:", updatedBusiness);
 
-        setBusinessData(prevData => prevData ? {
-            ...prevData,
-            current_funding: updatedBusiness.current_funding,
-            backers: updatedBusiness.backers,
-        } : null);
+        // Refresh business data to get updated investment info
+        const refreshResponse = await fetch(`http://localhost:8000/api/businesses/${businessData.id}/`, {
+          headers: {
+            'Authorization': `Bearer ${localStorage.getItem('authToken')}`
+          }
+        });
+        if (refreshResponse.ok) {
+            const refreshedData = await refreshResponse.json();
+            setBusinessData(refreshedData);
+        } else {
+            // Fallback to updating with response data
+            setBusinessData(prevData => prevData ? {
+                ...prevData,
+                current_funding: updatedBusiness.current_funding,
+                backers: updatedBusiness.backers,
+            } : null);
+        }
 
         showNotification('success', 'Investment Successful', `Investment of ${formatCurrency(amount)} successful! Thank you for backing ${businessData.title}!`);
 
@@ -552,6 +593,23 @@ export default function BusinessDetailPage() {
                   </div>
                 </div>
 
+                {/* User Investment Information */}
+                {businessData.user_investment_amount > 0 && (
+                  <div className="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                    <h4 className="font-semibold text-blue-900 mb-2">Your Investment</h4>
+                    <div className="space-y-2">
+                      <div className="flex justify-between">
+                        <span className="text-blue-700">Amount Invested:</span>
+                        <span className="font-semibold text-blue-900">{formatCurrency(businessData.user_investment_amount)}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-blue-700">Your Share:</span>
+                        <span className="font-semibold text-blue-900">{businessData.user_investment_percentage}%</span>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
                 {isOwner ? (
                   <div className="space-y-4">
                     <div className="text-center bg-gray-100 text-gray-700 py-3 px-4 rounded-lg text-sm">You are the owner of this business.</div>
@@ -561,6 +619,19 @@ export default function BusinessDetailPage() {
                     >
                       View Investors
                     </button>
+                  </div>
+                ) : isEntrepreneur ? (
+                  <div className="space-y-4">
+                    <div className="text-center bg-blue-50 border border-blue-200 rounded-lg p-4">
+                      <MessageSquare className="h-8 w-8 text-blue-600 mx-auto mb-2" />
+                      <p className="text-sm text-blue-800 mb-3">Connect with the business owner</p>
+                      <button 
+                        onClick={() => navigate(`/messages?user=${businessData.user}`)}
+                        className="w-full bg-blue-600 text-white font-bold py-3 px-4 rounded-lg hover:bg-blue-700 transition-colors"
+                      >
+                        Message Owner
+                      </button>
+                    </div>
                   </div>
                 ) : !user.isAuthenticated ? (
                   <div className="space-y-4">
@@ -600,10 +671,14 @@ export default function BusinessDetailPage() {
                     </div>
                     <button 
                       onClick={handleInvest}
-                      className="w-full bg-gray-800 text-white font-bold py-3 px-4 rounded-lg hover:bg-gray-900 transition-colors disabled:opacity-50"
+                      className={`w-full font-bold py-3 px-4 rounded-lg transition-colors disabled:opacity-50 ${
+                        businessData.user_investment_amount > 0 
+                          ? 'bg-blue-600 text-white hover:bg-blue-700' 
+                          : 'bg-gray-800 text-white hover:bg-gray-900'
+                      }`}
                       disabled={parseFloat(investmentAmount) < min_investment}
                     >
-                      Invest Now
+                      {businessData.user_investment_amount > 0 ? 'Invest More' : 'Invest Now'}
                     </button>
                   </div>
                 )}
