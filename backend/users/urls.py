@@ -2,6 +2,7 @@
 
 from django.urls import path
 from .views import UserRegisterView, UserLoginView, UserProfileUpdateView, UserProfilePictureUploadView, UserProfileView
+from .views import AddFundView 
 
 urlpatterns = [
     path('register/', UserRegisterView.as_view(), name='register'), 
@@ -9,4 +10,5 @@ urlpatterns = [
     path('profile/update/', UserProfileUpdateView.as_view(), name='profile-update'),
     path('profile/', UserProfileView.as_view(), name='profile'),
     path('profile/upload-picture/', UserProfilePictureUploadView.as_view(), name='profile-picture-upload'),
+    path('add_fund/', AddFundView.as_view(), name='add_fund'), 
 ]

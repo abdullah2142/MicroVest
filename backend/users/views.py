@@ -11,6 +11,13 @@ from rest_framework_simplejwt.tokens import RefreshToken # Used for generating J
 from django.conf import settings
 import os
 
+from rest_framework import status
+from rest_framework.response import Response
+from rest_framework.views import APIView
+from rest_framework.permissions import IsAuthenticated
+from decimal import Decimal # Import Decimal for accurate money calculations
+from django.db import transaction # Import transaction for atomicity
+
 from .serializers import UserRegisterSerializer, UserLoginSerializer, UserProfileUpdateSerializer
 from .models import CustomUser # <--- ENSURE CustomUser IS IMPORTED HERE
 
@@ -150,3 +157,37 @@ class UserProfilePictureUploadView(APIView):
             return Response({
                 'error': f'An error occurred while uploading the profile picture: {str(e)}'
             }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        
+class AddFundView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request, *args, **kwargs):
+        amount_str = request.data.get('amount')
+
+        if amount_str is None:
+            return Response({"error": "Amount is required."}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            # Convert the amount to Decimal for precise financial calculations
+            amount = Decimal(amount_str)
+            if amount <= 0:
+                return Response({"error": "Amount must be a positive number."}, status=status.HTTP_400_BAD_REQUEST)
+        except (ValueError, TypeError):
+            return Response({"error": "Invalid amount format."}, status=status.HTTP_400_BAD_REQUEST)
+
+        user = request.user # The authenticated user instance
+
+        # Use a database transaction to ensure atomicity
+        # This prevents race conditions if multiple requests try to update the fund simultaneously
+        with transaction.atomic():
+            # Re-fetch the user within the transaction to get the latest fund value
+            # This is important for preventing race conditions if user fund is updated elsewhere
+            user.refresh_from_db() 
+            user.fund += amount
+            user.save()
+
+        # You can return the updated fund or a success message
+        return Response({
+            "message": f"Successfully added {amount:.2f} to your fund.",
+            "new_fund_total": str(user.fund) # Convert Decimal to string for JSON serialization
+        }, status=status.HTTP_200_OK)

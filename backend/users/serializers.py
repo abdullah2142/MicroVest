@@ -54,3 +54,22 @@ class UserProfileUpdateSerializer(serializers.ModelSerializer):
         model = CustomUser
         fields = ['first_name', 'last_name', 'email', 'phone_number']
         read_only_fields = ['username', 'user_type'] # These fields cannot be changed
+
+        # users/serializers.py
+from rest_framework import serializers
+from .models import CustomUser
+# from investors.serializers import InvestorProfileSerializer # If you want to nest the profile
+
+class CustomUserSerializer(serializers.ModelSerializer):
+    # If InvestorProfile is always linked and you want its data directly here:
+    # total_investments_count = serializers.IntegerField(source='investor_profile.total_investments_count', read_only=True)
+    # total_money_invested = serializers.DecimalField(max_digits=12, decimal_places=2, source='investor_profile.total_money_invested', read_only=True)
+
+    class Meta:
+        model = CustomUser
+        fields = [
+            'username', 'first_name', 'last_name', 'email', 'user_type', 'fund', 'prof_pic',
+            # Add these if you're fetching from CustomUserSerializer directly:
+            # 'total_investments_count', 'total_money_invested'
+        ]
+        read_only_fields = ['username', 'email', 'user_type', 'fund', 'total_investments_count', 'total_money_invested']

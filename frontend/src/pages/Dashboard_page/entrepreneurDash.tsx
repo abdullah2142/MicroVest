@@ -277,7 +277,7 @@ export default function EntrepreneurDashboard() {
         <main className="flex-1 flex flex-col lg:flex-row lg:gap-8 p-6 lg:p-8">
           {/* Center Main Area */}
           <section className="flex-1">
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-10 gap-4">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-10 gap-4"> 
               <h1 className="text-4xl font-bold text-gray-900">Dashboard</h1>
               <div className="flex gap-4">
                 <button onClick={() => navigate('/pitch')} className="bg-gray-900 text-white px-6 py-3 rounded-full font-semibold shadow-[0_4px_20px_rgba(0,0,0,0.3)] hover:bg-gray-800 transition">Create Business</button>

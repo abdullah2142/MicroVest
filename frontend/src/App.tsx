@@ -30,6 +30,7 @@ import ConsultantsPage from './pages/ConsultantsPage'
 
 // Layout
 import MainLayout from './components/MainLayout'
+import AddFund from './pages/addfunds'
 
 function App() {
 
@@ -56,6 +57,7 @@ function App() {
         <Route path='/business/:businessId/fund-statistics' element={<FundStatisticsPage />} />
         <Route path='/profit-distributions' element={<ProfitDistributionsDashboard />} />
         <Route path='/consultants' element={<ConsultantsPage />} />
+        <Route path="/add-funds" element={<AddFund />} />
       </Route>
     </Routes>
   )
