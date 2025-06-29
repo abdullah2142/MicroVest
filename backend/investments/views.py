@@ -5,7 +5,7 @@ from rest_framework import status
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from django.db.models import Q
 from django.db import transaction
-from .models import Business, CalendarEvent
+from .models import Business, CalendarEvent, SavedBusiness
 from .serializers import (
     BusinessListSerializer,
     BusinessDetailSerializer,
@@ -14,7 +14,9 @@ from .serializers import (
     BusinessImageSerializer,
     BusinessVideoSerializer,
     BusinessDocumentSerializer,
-    CalendarEventSerializer
+    CalendarEventSerializer,
+    SavedBusinessSerializer,
+    SavedBusinessListSerializer
 )
 from .permissions import IsOwnerOrReadOnly, IsOwner, IsAuthenticatedOrReadOnly
 from django.db.models import F
@@ -224,3 +226,51 @@ def create_calendar_event(request):
             {'error': str(e)}, 
             status=status.HTTP_500_INTERNAL_SERVER_ERROR
         )
+
+class SavedBusinessListView(generics.ListAPIView):
+    serializer_class = SavedBusinessListSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        return SavedBusiness.objects.filter(user=self.request.user)
+
+class SavedBusinessCreateView(generics.CreateAPIView):
+    serializer_class = SavedBusinessSerializer
+    permission_classes = [IsAuthenticated]
+
+    def perform_create(self, serializer):
+        serializer.save(user=self.request.user)
+
+class SavedBusinessDeleteView(generics.DestroyAPIView):
+    queryset = SavedBusiness.objects.all()
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        return SavedBusiness.objects.filter(user=self.request.user)
+
+@api_view(['POST', 'DELETE'])
+@permission_classes([IsAuthenticated])
+def toggle_save_business(request, business_id):
+    """
+    Toggle save/unsave a business for the current user
+    """
+    try:
+        business = Business.objects.get(id=business_id)
+    except Business.DoesNotExist:
+        return Response({'error': 'Business not found'}, status=status.HTTP_404_NOT_FOUND)
+
+    saved_business, created = SavedBusiness.objects.get_or_create(
+        user=request.user,
+        business=business
+    )
+
+    if request.method == 'DELETE':
+        # Unsave the business
+        saved_business.delete()
+        return Response({'message': 'Business unsaved successfully'}, status=status.HTTP_200_OK)
+    else:
+        # Save the business (already created above)
+        return Response({
+            'message': 'Business saved successfully',
+            'saved': True
+        }, status=status.HTTP_201_CREATED)

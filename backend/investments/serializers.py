@@ -1,6 +1,6 @@
 # investments/serializers.py
 from rest_framework import serializers
-from .models import Business, BusinessImage, BusinessVideo, BusinessDocument, CalendarEvent
+from .models import Business, BusinessImage, BusinessVideo, BusinessDocument, CalendarEvent, SavedBusiness
 from investments_tracking.models import Investment
 
 # --- Serializers for creating/uploading related files ---
@@ -19,6 +19,35 @@ class BusinessDocumentCreateSerializer(serializers.ModelSerializer):
     class Meta:
         model = BusinessDocument
         fields = ['name', 'document_file', 'size'] # 'document_file' for file upload
+
+class SavedBusinessSerializer(serializers.ModelSerializer):
+    business = serializers.PrimaryKeyRelatedField(queryset=Business.objects.all())
+    
+    class Meta:
+        model = SavedBusiness
+        fields = ['id', 'business', 'saved_at']
+        read_only_fields = ['id', 'saved_at']
+
+class SavedBusinessListSerializer(serializers.ModelSerializer):
+    business = serializers.SerializerMethodField()
+    
+    class Meta:
+        model = SavedBusiness
+        fields = ['id', 'business', 'saved_at']
+    
+    def get_business(self, obj):
+        # Return basic business info for the saved business
+        business = obj.business
+        return {
+            'id': business.id,
+            'title': business.title,
+            'category': business.category,
+            'location': business.location,
+            'funding_goal': business.funding_goal,
+            'current_funding': business.current_funding,
+            'backers': business.backers,
+            'image': business.images.first().image.url if business.images.exists() else None,
+        }
 
 # --- Main serializer for creating a new Business Pitch ---
 class BusinessPitchSerializer(serializers.ModelSerializer):
@@ -127,13 +156,14 @@ class BusinessListSerializer(serializers.ModelSerializer):
     image = serializers.SerializerMethodField()
     user_investment_amount = serializers.SerializerMethodField()
     user_investment_percentage = serializers.SerializerMethodField()
+    is_saved = serializers.SerializerMethodField()
 
     class Meta:
         model = Business
         fields = [
             'id', 'title', 'description', 'category', 'location',
             'funding_goal', 'current_funding', 'backers',
-            'min_investment', 'image', 'user', 'user_investment_amount', 'user_investment_percentage'
+            'min_investment', 'image', 'user', 'user_investment_amount', 'user_investment_percentage', 'is_saved'
         ]
 
     def get_image(self, obj):
@@ -165,6 +195,12 @@ class BusinessListSerializer(serializers.ModelSerializer):
             except Investment.DoesNotExist:
                 return 0
         return 0
+
+    def get_is_saved(self, obj):
+        request = self.context.get('request')
+        if request and request.user.is_authenticated:
+            return SavedBusiness.objects.filter(user=request.user, business=obj).exists()
+        return False
 
 class BusinessDetailSerializer(serializers.ModelSerializer):
     images = BusinessImageSerializer(many=True, read_only=True)

@@ -9,4 +9,6 @@ urlpatterns = [
     path('profit-distributions/dashboard/', views.profit_distributions_dashboard, name='profit_distributions_dashboard'),
     path('recent/', views.recent_logs, name='recent_logs'),
     path('my-businesses/', views.my_businesses_logs, name='my_businesses_logs'),
+    path('next-month-year/', views.next_month_year, name='next-month-year'),
+    path('create/', views.create_log, name='create-log'),
 ] 

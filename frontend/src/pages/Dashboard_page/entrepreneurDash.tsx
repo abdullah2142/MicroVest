@@ -9,7 +9,11 @@ import {
   Monitor,
   Plus,
   Building,
+  Bookmark,
+  Users,
+  MessageSquare,
 } from "lucide-react"
+import MyInvestorsModal from "../../components/MyInvestorsModal"
 
 interface Business {
   id: number;
@@ -63,7 +67,28 @@ interface EntrepreneurMetrics {
   total_assets: number;
 }
 
-function Sidebar({ active = "Overview" }) {
+interface Investor {
+  investor_id: number;
+  investor_name: string;
+  investor_username: string;
+  investor_email: string;
+  total_invested_in_my_businesses: number;
+  total_businesses_invested_in: number;
+  investments: {
+    business_id: number;
+    business_title: string;
+    business_category: string;
+    amount_invested: number;
+    invested_at: string;
+    share_percentage: number;
+  }[];
+}
+
+function Sidebar({ active = "Overview", savedBusinesses, onOpenInvestors }: { 
+  active?: string, 
+  savedBusinesses: { id: number, title: string }[],
+  onOpenInvestors: () => void
+}) {
   const navigate = useNavigate();
   
   const nav = [
@@ -74,20 +99,57 @@ function Sidebar({ active = "Overview" }) {
   ]
   return (
     <aside className="hidden md:flex flex-col w-72 min-h-full bg-white py-8 px-6 gap-3 shadow-[2px_0_20px_rgba(0,0,0,0.08)]">
-      {nav.map((item) => (
+      <div>
+        {nav.map((item) => (
+          <button
+            key={item.label}
+            onClick={item.action}
+            className={`flex items-center gap-4 px-5 py-3 rounded-xl text-base font-medium transition-colors ${
+              active === item.label
+                ? "bg-gray-100 text-black"
+                : "text-gray-600 hover:bg-gray-50"
+            }`}
+          >
+            <item.icon className="w-6 h-6" />
+            {item.label}
+          </button>
+        ))}
+      </div>
+      
+      {/* My Investors Button */}
+      <div className="mt-8 pt-8 border-t border-gray-200">
         <button
-          key={item.label}
-          onClick={item.action}
-          className={`flex items-center gap-4 px-5 py-3 rounded-xl text-base font-medium transition-colors ${
-            active === item.label
-              ? "bg-gray-100 text-black"
-              : "text-gray-600 hover:bg-gray-50"
-          }`}
+          onClick={onOpenInvestors}
+          className="flex items-center gap-4 px-5 py-3 rounded-xl text-base font-medium transition-colors text-gray-600 hover:bg-gray-50 w-full"
         >
-          <item.icon className="w-6 h-6" />
-          {item.label}
+          <UsersIcon className="w-6 h-6 text-blue-500" />
+          My Investors
         </button>
-      ))}
+      </div>
+
+      {/* Saved Section */}
+      <div className="mt-6 pt-6 border-t border-gray-200">
+        <div className="flex items-center gap-2 mb-2 text-gray-700 font-semibold">
+          <Bookmark className="w-5 h-5 text-emerald-500" />
+          Saved
+        </div>
+        {savedBusinesses.length === 0 ? (
+          <div className="text-xs text-gray-400">No saved businesses</div>
+        ) : (
+          <ul className="space-y-1">
+            {savedBusinesses.map(biz => (
+              <li key={biz.id}>
+                <button
+                  className="text-sm text-blue-700 hover:underline hover:text-emerald-600"
+                  onClick={() => navigate(`/business/${biz.id}`)}
+                >
+                  {biz.title}
+                </button>
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
     </aside>
   )
 }
@@ -99,6 +161,9 @@ export default function EntrepreneurDashboard() {
   const [businesses, setBusinesses] = useState<Business[]>([])
   const [metrics, setMetrics] = useState<EntrepreneurMetrics | null>(null)
   const [profilePicture, setProfilePicture] = useState<string | null>(null)
+  const [savedBusinesses, setSavedBusinesses] = useState<{ id: number, title: string }[]>([])
+  const [investors, setInvestors] = useState<Investor[]>([])
+  const [isInvestorsModalOpen, setIsInvestorsModalOpen] = useState(false)
   const navigate = useNavigate()
 
   useEffect(() => {
@@ -224,6 +289,19 @@ export default function EntrepreneurDashboard() {
           setMetrics(metricsData)
         }
 
+        // Fetch investors for entrepreneur's businesses
+        const investorsRes = await fetch('http://localhost:8000/api/investments-tracking/entrepreneur-investors/', {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          }
+        })
+
+        if (investorsRes.ok) {
+          const investorsData = await investorsRes.json()
+          setInvestors(investorsData)
+        }
+
       } catch (e) {
         console.error('Error fetching dashboard data:', e)
         setError(e instanceof Error ? e.message : 'Failed to load dashboard data')
@@ -234,6 +312,23 @@ export default function EntrepreneurDashboard() {
 
     fetchDashboardData()
   }, [])
+
+  useEffect(() => {
+    const fetchSaved = async () => {
+      const token = localStorage.getItem('authToken');
+      if (!token) return;
+      try {
+        const response = await fetch('http://localhost:8000/api/saved-businesses/', {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        if (response.ok) {
+          const data = await response.json();
+          setSavedBusinesses(data.map((item: any) => ({ id: item.business.id, title: item.business.title })));
+        }
+      } catch (e) { /* ignore */ }
+    };
+    fetchSaved();
+  }, []);
 
   const formatCurrency = (amount: number) => {
     if (isNaN(amount) || amount === null || amount === undefined) {
@@ -263,6 +358,11 @@ export default function EntrepreneurDashboard() {
     }
   }
 
+  const handleMessageInvestor = (investorId: number) => {
+    navigate(`/messages?user=${investorId}`);
+    setIsInvestorsModalOpen(false);
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
@@ -289,7 +389,11 @@ export default function EntrepreneurDashboard() {
     <div className="min-h-screen bg-gray-50 flex flex-col">
       <div className="flex flex-1">
         {/* Sidebar */}
-        <Sidebar active="Overview" />
+        <Sidebar 
+          active="Overview" 
+          savedBusinesses={savedBusinesses} 
+          onOpenInvestors={() => setIsInvestorsModalOpen(true)}
+        />
         {/* Main Content */}
         <main className="flex-1 flex flex-col lg:flex-row lg:gap-8 p-6 lg:p-8">
           {/* Center Main Area */}
@@ -337,18 +441,27 @@ export default function EntrepreneurDashboard() {
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-10">
-              <div className="bg-white rounded-2xl shadow-[0_8px_30px_rgba(0,0,0,0.08)] p-8 flex flex-col items-center">
+              <button 
+                onClick={() => navigate('/my-businesses')}
+                className="bg-white rounded-2xl shadow-[0_8px_30px_rgba(0,0,0,0.08)] p-8 flex flex-col items-center hover:shadow-[0_8px_30px_rgba(0,0,0,0.12)] transition-shadow cursor-pointer"
+              >
                 <div className="text-sm text-gray-500 mb-4">Total Businesses</div>
                 <div className="text-5xl font-bold text-gray-900">{stats?.total_businesses || 0}</div>
-              </div>
-              <div className="bg-white rounded-2xl shadow-[0_8px_30px_rgba(0,0,0,0.08)] p-8 flex flex-col items-center">
+              </button>
+              <button 
+                onClick={() => navigate('/my-businesses')}
+                className="bg-white rounded-2xl shadow-[0_8px_30px_rgba(0,0,0,0.08)] p-8 flex flex-col items-center hover:shadow-[0_8px_30px_rgba(0,0,0,0.12)] transition-shadow cursor-pointer"
+              >
                 <div className="text-sm text-gray-500 mb-4">Total Funding Raised</div>
                 <div className="text-5xl font-bold text-gray-900">{formatCurrency(stats?.total_funding_raised || 0)}</div>
-              </div>
-              <div className="bg-white rounded-2xl shadow-[0_8px_30px_rgba(0,0,0,0.08)] p-8 flex flex-col items-center">
+              </button>
+              <button 
+                onClick={() => setIsInvestorsModalOpen(true)}
+                className="bg-white rounded-2xl shadow-[0_8px_30px_rgba(0,0,0,0.08)] p-8 flex flex-col items-center hover:shadow-[0_8px_30px_rgba(0,0,0,0.12)] transition-shadow cursor-pointer"
+              >
                 <div className="text-sm text-gray-500 mb-4">Total Investors</div>
                 <div className="text-5xl font-bold text-gray-900">{stats?.total_investors || 0}</div>
-              </div>
+              </button>
             </div>
             
             {/* New Metrics Cards Row */}
@@ -387,10 +500,13 @@ export default function EntrepreneurDashboard() {
                 <div className="text-sm text-gray-500 mb-4">Earning Last Month</div>
                 <div className="text-5xl font-bold text-gray-900">{formatCurrency((stats?.total_profit_generated || 0) / 12)}</div>
               </div>
-              <div className="bg-white rounded-2xl shadow-[0_8px_30px_rgba(0,0,0,0.08)] p-8 flex flex-col items-center">
+              <button 
+                onClick={() => navigate('/documentation')}
+                className="bg-white rounded-2xl shadow-[0_8px_30px_rgba(0,0,0,0.08)] p-8 flex flex-col items-center hover:shadow-[0_8px_30px_rgba(0,0,0,0.12)] transition-shadow cursor-pointer"
+              >
                 <div className="text-sm text-gray-500 mb-4">Logs</div>
                 <div className="text-5xl font-bold text-gray-900">{stats?.recent_logs?.length || 0}</div>
-              </div>
+              </button>
             </div>
 
             <div>
@@ -446,6 +562,14 @@ export default function EntrepreneurDashboard() {
           </section>
         </main>
       </div>
+
+      {/* My Investors Modal */}
+      <MyInvestorsModal
+        isOpen={isInvestorsModalOpen}
+        onClose={() => setIsInvestorsModalOpen(false)}
+        investors={investors}
+        onMessageInvestor={handleMessageInvestor}
+      />
     </div>
   )
 }

@@ -42,6 +42,18 @@ class Business(models.Model):
     def __str__(self):
         return self.title
 
+class SavedBusiness(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='saved_businesses')
+    business = models.ForeignKey(Business, on_delete=models.CASCADE, related_name='saved_by_users')
+    saved_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        unique_together = ['user', 'business']
+        ordering = ['-saved_at']
+
+    def __str__(self):
+        return f"{self.user.username} saved {self.business.title}"
+
 class BusinessImage(models.Model):
     business = models.ForeignKey(Business, related_name='images', on_delete=models.CASCADE)
     image = models.ImageField(upload_to='business_images/',blank=True, null=True)

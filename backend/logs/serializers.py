@@ -26,37 +26,38 @@ class LogSerializer(serializers.ModelSerializer):
     formatted_profit_generated = serializers.CharField(read_only=True)
     formatted_profit_distributed = serializers.CharField(read_only=True)
     formatted_profit_retained = serializers.CharField(read_only=True)
+    formatted_total_revenue = serializers.CharField(read_only=True)
+    formatted_total_expense = serializers.CharField(read_only=True)
     profit_distributions = ProfitDistributionSerializer(many=True, read_only=True)
-    
-    def validate_profit_generated(self, value):
-        """Ensure profit_generated is properly converted to Decimal"""
-        if value is not None and value != '':
-            try:
-                return Decimal(str(value))
-            except (ValueError, TypeError):
-                return Decimal('0.00')
-        return Decimal('0.00')
     
     class Meta:
         model = Log
         fields = [
             'id', 'business', 'business_title', 'entrepreneur_name', 'title', 'content',
             'fund_usage', 'progress_update', 'achievements', 'challenges', 'next_steps',
-            'financial_update', 'profit_generated', 'formatted_profit_generated',
+            'financial_update',
+            'month', 'year',
+            'total_revenue', 'formatted_total_revenue',
+            'total_expense', 'formatted_total_expense',
+            'profit_generated', 'formatted_profit_generated',
             'profit_distributed', 'formatted_profit_distributed', 'profit_retained',
             'formatted_profit_retained', 'profit_distribution_date', 'profit_notes',
             'profit_distributions', 'created_at', 'updated_at'
         ]
-        read_only_fields = ['created_at', 'updated_at']
+        read_only_fields = ['created_at', 'updated_at', 'profit_generated', 'formatted_profit_generated', 'formatted_total_revenue', 'formatted_total_expense']
 
 class LogListSerializer(serializers.ModelSerializer):
     business_title = serializers.CharField(source='business.title', read_only=True)
     entrepreneur_name = serializers.CharField(source='business.entrepreneur_name', read_only=True)
     formatted_profit_generated = serializers.CharField(read_only=True)
+    formatted_total_revenue = serializers.CharField(read_only=True)
+    formatted_total_expense = serializers.CharField(read_only=True)
     
     class Meta:
         model = Log
         fields = [
-            'id', 'business_title', 'entrepreneur_name', 'title', 'profit_generated',
-            'formatted_profit_generated', 'created_at'
+            'id', 'business_title', 'entrepreneur_name', 'title', 'month', 'year',
+            'total_revenue', 'formatted_total_revenue',
+            'total_expense', 'formatted_total_expense',
+            'profit_generated', 'formatted_profit_generated', 'created_at'
         ] 

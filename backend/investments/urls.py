@@ -1,7 +1,8 @@
 from django.urls import path
 from .views import (
     BusinessListView, BusinessDetailView, BusinessCreateView, BusinessUpdateView, 
-    BusinessDeleteView, UserBusinessListView, InvestAPIView, calendar_events, create_calendar_event
+    BusinessDeleteView, UserBusinessListView, InvestAPIView, calendar_events, create_calendar_event,
+    SavedBusinessListView, SavedBusinessCreateView, SavedBusinessDeleteView, toggle_save_business
 )
 
 urlpatterns = [
@@ -15,4 +16,10 @@ urlpatterns = [
     path('invest/', InvestAPIView.as_view(), name='invest'),
     path('calendar/events/', calendar_events, name='calendar-events'),
     path('calendar/events/create/', create_calendar_event, name='create-calendar-event'),
+    
+    # Saved Business URLs
+    path('saved-businesses/', SavedBusinessListView.as_view(), name='saved-business-list'),
+    path('saved-businesses/create/', SavedBusinessCreateView.as_view(), name='saved-business-create'),
+    path('saved-businesses/<int:pk>/', SavedBusinessDeleteView.as_view(), name='saved-business-delete'),
+    path('businesses/<int:business_id>/toggle-save/', toggle_save_business, name='toggle-save-business'),
 ]

@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Save, FileText, DollarSign, CheckCircle, AlertTriangle, Calendar } from 'lucide-react';
+import { MONTHS } from '../../utils/months';
 
 interface Business {
   id: number;
@@ -16,8 +17,8 @@ export default function CreateLogPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [business, setBusiness] = useState<Business | null>(null);
+  const [existingLogs, setExistingLogs] = useState<{ month: number; year: number }[]>([]);
   const [formData, setFormData] = useState({
-    title: '',
     content: '',
     fund_usage: '',
     progress_update: '',
@@ -25,7 +26,10 @@ export default function CreateLogPage() {
     challenges: '',
     next_steps: '',
     financial_update: '',
-    profit_generated: ''
+    month: new Date().getMonth() + 1,
+    year: 2025,
+    total_revenue: '',
+    total_expense: '',
   });
 
   useEffect(() => {
@@ -60,13 +64,65 @@ export default function CreateLogPage() {
     }
   }, [id]);
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+  useEffect(() => {
+    const fetchExistingLogs = async () => {
+      try {
+        const token = localStorage.getItem('authToken');
+        if (!token) return;
+        
+        const res = await fetch(`http://localhost:8000/api/logs/business/${id}/`, {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        
+        if (res.ok) {
+          const logs = await res.json();
+          const loggedMonths = logs.map((log: any) => ({
+            month: log.month,
+            year: log.year
+          }));
+          setExistingLogs(loggedMonths);
+        }
+      } catch (error) {
+        console.error('Error fetching existing logs:', error);
+      }
+    };
+
+    if (id) {
+      fetchExistingLogs();
+    }
+  }, [id]);
+
+  useEffect(() => {
+    const fetchNextMonthYear = async () => {
+      try {
+        const token = localStorage.getItem('authToken');
+        if (!token) return;
+        const res = await fetch(`http://localhost:8000/api/logs/next-month-year/?business=${id}`, {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        if (res.ok) {
+          const data = await res.json();
+          setFormData(prev => ({ ...prev, month: data.month, year: data.year }));
+        }
+      } catch {
+        // Fallback: if no logs exist, start with current month of 2025
+        const currentMonth = new Date().getMonth() + 1;
+        setFormData(prev => ({ ...prev, month: currentMonth, year: 2025 }));
+      }
+    };
+    if (id) fetchNextMonthYear();
+  }, [id]);
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
     setFormData(prev => ({
       ...prev,
       [name]: value
     }));
   };
+
+  const calculatedProfit =
+    parseFloat(formData.total_revenue || '0') - parseFloat(formData.total_expense || '0');
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -82,10 +138,13 @@ export default function CreateLogPage() {
       const submitData = {
         ...formData,
         business: parseInt(id!),
-        profit_generated: formData.profit_generated ? formData.profit_generated : null
+        total_revenue: formData.total_revenue,
+        total_expense: formData.total_expense,
+        month: formData.month,
+        year: formData.year,
       };
 
-      const res = await fetch('http://localhost:8000/api/logs/', {
+      const res = await fetch('http://localhost:8000/api/logs/create/', {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -114,6 +173,20 @@ export default function CreateLogPage() {
         throw new Error(errorMessage);
       }
 
+      // After success, auto-increment month/year and reset form for next log
+      let nextMonth = parseInt(formData.month as any) + 1;
+      let nextYear = parseInt(formData.year as any);
+      if (nextMonth > 12) { 
+        nextMonth = 1; 
+        nextYear = 2026; // After December 2025, go to 2026
+      }
+      setFormData(prev => ({
+        ...prev,
+        content: '', fund_usage: '', progress_update: '', achievements: '', challenges: '', next_steps: '', financial_update: '',
+        month: nextMonth, year: nextYear, total_revenue: '', total_expense: ''
+      }));
+      setError(null);
+
       // Navigate back to logs page
       navigate(`/businesses/${id}/logs`);
     } catch (e) {
@@ -125,12 +198,27 @@ export default function CreateLogPage() {
   };
 
   const isFormValid = () => {
-    return formData.title.trim() && formData.content.trim();
+    return formData.content.trim() && 
+           formData.total_revenue && 
+           formData.total_expense && 
+           availableMonths.length > 0;
   };
 
   const isBusinessFullyFunded = () => {
     return business && business.current_funding === business.funding_goal;
   };
+
+  const getAvailableMonths = () => {
+    const currentYear = formData.year;
+    const loggedMonthsThisYear = existingLogs
+      .filter(log => log.year === currentYear)
+      .map(log => log.month);
+    
+    return Array.from({ length: 12 }, (_, i) => i + 1)
+      .filter(month => !loggedMonthsThisYear.includes(month));
+  };
+
+  const availableMonths = getAvailableMonths();
 
   return (
     <div className="w-full max-w-[1920px] mx-auto py-8 px-8">
@@ -187,22 +275,6 @@ export default function CreateLogPage() {
           
           <div className="space-y-4">
             <div>
-              <label htmlFor="title" className="block text-sm font-medium text-gray-700 mb-2">
-                Log Title *
-              </label>
-              <input
-                type="text"
-                id="title"
-                name="title"
-                value={formData.title}
-                onChange={handleInputChange}
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                placeholder="e.g., Q1 2025 Progress Update - Expansion Milestones"
-                required
-              />
-            </div>
-
-            <div>
               <label htmlFor="content" className="block text-sm font-medium text-gray-700 mb-2">
                 Overall Summary / Description *
               </label>
@@ -228,50 +300,77 @@ export default function CreateLogPage() {
           </h2>
           
           <div className="space-y-4">
-            <div>
-              <label htmlFor="fund_usage" className="block text-sm font-medium text-gray-700 mb-2">
-                Fund Usage
-              </label>
-              <textarea
-                id="fund_usage"
-                name="fund_usage"
-                value={formData.fund_usage}
-                onChange={handleInputChange}
-                rows={4}
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                placeholder="Detail how the raised funds have been allocated and used..."
-              />
+            {/* Month/Year fields */}
+            <div className="flex gap-4">
+              <div>
+                <label htmlFor="month" className="block text-sm font-medium text-gray-700 mb-2">Month</label>
+                <select
+                  id="month"
+                  name="month"
+                  value={formData.month}
+                  onChange={handleInputChange}
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                >
+                  {availableMonths.map(month => (
+                    <option key={month} value={month}>{MONTHS[month - 1]}</option>
+                  ))}
+                </select>
+                {availableMonths.length === 0 && (
+                  <p className="text-sm text-red-600 mt-1">
+                    All months for {formData.year} have been logged. The next log will be for {formData.year + 1}.
+                  </p>
+                )}
+              </div>
+              <div>
+                <label htmlFor="year" className="block text-sm font-medium text-gray-700 mb-2">Year</label>
+                <input
+                  type="number"
+                  id="year"
+                  name="year"
+                  value={formData.year}
+                  readOnly
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg bg-gray-100 text-gray-700"
+                />
+              </div>
             </div>
-
             <div>
-              <label htmlFor="financial_update" className="block text-sm font-medium text-gray-700 mb-2">
-                Financial Update
-              </label>
-              <textarea
-                id="financial_update"
-                name="financial_update"
-                value={formData.financial_update}
-                onChange={handleInputChange}
-                rows={4}
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                placeholder="Provide financial metrics, revenue updates, and key financial milestones..."
-              />
-            </div>
-
-            <div>
-              <label htmlFor="profit_generated" className="block text-sm font-medium text-gray-700 mb-2">
-                Profit Generated (BDT)
-              </label>
+              <label htmlFor="total_revenue" className="block text-sm font-medium text-gray-700 mb-2">Total Revenue (BDT)</label>
               <input
                 type="number"
-                id="profit_generated"
-                name="profit_generated"
-                value={formData.profit_generated}
+                id="total_revenue"
+                name="total_revenue"
+                value={formData.total_revenue}
                 onChange={handleInputChange}
                 step="0.01"
                 min="0"
                 className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                 placeholder="0.00"
+                required
+              />
+            </div>
+            <div>
+              <label htmlFor="total_expense" className="block text-sm font-medium text-gray-700 mb-2">Total Expense (BDT)</label>
+              <input
+                type="number"
+                id="total_expense"
+                name="total_expense"
+                value={formData.total_expense}
+                onChange={handleInputChange}
+                step="0.01"
+                min="0"
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                placeholder="0.00"
+                required
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Profit (BDT)</label>
+              <input
+                type="number"
+                value={isNaN(calculatedProfit) ? '' : calculatedProfit}
+                readOnly
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg bg-gray-100 text-gray-700"
+                placeholder="Calculated automatically"
               />
             </div>
           </div>
@@ -375,6 +474,11 @@ export default function CreateLogPage() {
               <>
                 <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
                 Creating...
+              </>
+            ) : availableMonths.length === 0 ? (
+              <>
+                <Save size={18} />
+                All Months Logged
               </>
             ) : (
               <>

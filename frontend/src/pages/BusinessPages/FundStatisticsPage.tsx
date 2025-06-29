@@ -180,21 +180,21 @@ export default function FundStatisticsPage() {
   };
 
   if (loading) return (
-    <div className="flex-1 bg-gray-50 flex items-center justify-center p-8">
+    <div className="flex-1 bg-gray-900 flex items-center justify-center p-8">
       <div className="text-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
-        <p className="mt-4 text-gray-600">Loading fund statistics...</p>
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-emerald-500 mx-auto"></div>
+        <p className="mt-4 text-gray-400">Loading fund statistics...</p>
       </div>
     </div>
   );
 
   if (error) return (
-    <div className="flex-1 bg-gray-50 flex items-center justify-center p-8">
+    <div className="flex-1 bg-gray-900 flex items-center justify-center p-8">
       <div className="text-center">
-        <p className="text-red-500 mb-4">{error}</p>
+        <p className="text-red-400 mb-4">{error}</p>
         <button 
           onClick={() => navigate(-1)}
-          className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700"
+          className="bg-emerald-600 text-white px-4 py-2 rounded-lg hover:bg-emerald-700"
         >
           Go Back
         </button>
@@ -203,88 +203,88 @@ export default function FundStatisticsPage() {
   );
 
   if (!statsData) return (
-    <div className="flex-1 bg-gray-50 flex items-center justify-center p-8">
-      <p>No fund statistics available.</p>
+    <div className="flex-1 bg-gray-900 flex items-center justify-center p-8">
+      <p className="text-gray-400">No fund statistics available.</p>
     </div>
   );
 
   return (
-    <div className="flex-1 bg-gray-50">
+    <div className="flex-1 bg-gray-900">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Header */}
         <div className="mb-8">
           <button 
             onClick={() => navigate(-1)} 
-            className="inline-flex items-center gap-2 text-gray-600 hover:text-gray-900 mb-4"
+            className="inline-flex items-center gap-2 text-gray-400 hover:text-white mb-4"
           >
             <ArrowLeft size={16} /> Back to My Businesses
           </button>
-          <h1 className="text-4xl font-bold text-gray-900">Fund Statistics</h1>
-          <p className="text-lg text-gray-500 mt-2">{statsData.summary.business_title}</p>
+          <h1 className="text-4xl font-bold text-white">Fund Statistics</h1>
+          <p className="text-lg text-gray-400 mt-2">{statsData.summary.business_title}</p>
         </div>
 
         {/* Summary Cards */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+          <div className="bg-gray-800 rounded-xl shadow-sm border border-gray-700 p-6">
             <div className="flex items-center">
-              <div className="p-2 bg-green-100 rounded-lg">
-                <DollarSign className="h-6 w-6 text-green-600" />
+              <div className="p-2 bg-emerald-900/50 rounded-lg">
+                <DollarSign className="h-6 w-6 text-emerald-400" />
               </div>
               <div className="ml-4">
-                <p className="text-sm text-gray-500">Total Raised</p>
-                <p className="text-2xl font-bold text-gray-900">{formatCurrency(statsData.summary.total_invested)}</p>
+                <p className="text-sm text-gray-400">Total Raised</p>
+                <p className="text-2xl font-bold text-white">{formatCurrency(statsData.summary.total_invested)}</p>
               </div>
             </div>
           </div>
 
-          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+          <div className="bg-gray-800 rounded-xl shadow-sm border border-gray-700 p-6">
             <div className="flex items-center">
-              <div className="p-2 bg-blue-100 rounded-lg">
-                <Users className="h-6 w-6 text-blue-600" />
+              <div className="p-2 bg-blue-900/50 rounded-lg">
+                <Users className="h-6 w-6 text-blue-400" />
               </div>
               <div className="ml-4">
-                <p className="text-sm text-gray-500">Total Investors</p>
-                <p className="text-2xl font-bold text-gray-900">{statsData.summary.total_investors}</p>
+                <p className="text-sm text-gray-400">Total Investors</p>
+                <p className="text-2xl font-bold text-white">{statsData.summary.total_investors}</p>
               </div>
             </div>
           </div>
 
-          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+          <div className="bg-gray-800 rounded-xl shadow-sm border border-gray-700 p-6">
             <div className="flex items-center">
-              <div className="p-2 bg-purple-100 rounded-lg">
-                <TrendingUp className="h-6 w-6 text-purple-600" />
+              <div className="p-2 bg-purple-900/50 rounded-lg">
+                <TrendingUp className="h-6 w-6 text-purple-400" />
               </div>
               <div className="ml-4">
-                <p className="text-sm text-gray-500">Progress</p>
-                <p className="text-2xl font-bold text-gray-900">{statsData.summary.progress_percentage.toFixed(1)}%</p>
+                <p className="text-sm text-gray-400">Progress</p>
+                <p className="text-2xl font-bold text-white">{statsData.summary.progress_percentage.toFixed(1)}%</p>
               </div>
             </div>
           </div>
 
-          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+          <div className="bg-gray-800 rounded-xl shadow-sm border border-gray-700 p-6">
             <div className="flex items-center">
-              <div className="p-2 bg-orange-100 rounded-lg">
-                <DollarSign className="h-6 w-6 text-orange-600" />
+              <div className="p-2 bg-orange-900/50 rounded-lg">
+                <DollarSign className="h-6 w-6 text-orange-400" />
               </div>
               <div className="ml-4">
-                <p className="text-sm text-gray-500">Goal</p>
-                <p className="text-2xl font-bold text-gray-900">{formatCurrency(statsData.summary.funding_goal)}</p>
+                <p className="text-sm text-gray-400">Goal</p>
+                <p className="text-2xl font-bold text-white">{formatCurrency(statsData.summary.funding_goal)}</p>
               </div>
             </div>
           </div>
         </div>
 
         {/* Chart Section */}
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-8">
+        <div className="bg-gray-800 rounded-xl shadow-sm border border-gray-700 p-6 mb-8">
           <div className="flex items-center justify-between mb-6">
-            <h2 className="text-xl font-semibold text-gray-900">Investment Distribution</h2>
+            <h2 className="text-xl font-semibold text-white">Investment Distribution</h2>
             <div className="flex space-x-2">
               <button
                 onClick={() => setChartType("pie")}
                 className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
                   chartType === "pie" 
-                    ? "bg-blue-600 text-white" 
-                    : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                    ? "bg-emerald-600 text-white" 
+                    : "bg-gray-700 text-gray-300 hover:bg-gray-600"
                 }`}
               >
                 <PieChart className="h-4 w-4 inline mr-1" />
@@ -294,8 +294,8 @@ export default function FundStatisticsPage() {
                 onClick={() => setChartType("bar")}
                 className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
                   chartType === "bar" 
-                    ? "bg-blue-600 text-white" 
-                    : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                    ? "bg-emerald-600 text-white" 
+                    : "bg-gray-700 text-gray-300 hover:bg-gray-600"
                 }`}
               >
                 <BarChart3 className="h-4 w-4 inline mr-1" />
@@ -314,66 +314,66 @@ export default function FundStatisticsPage() {
         </div>
 
         {/* Investor Details Table */}
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-          <h2 className="text-xl font-semibold text-gray-900 mb-6">Investor Details</h2>
+        <div className="bg-gray-800 rounded-xl shadow-sm border border-gray-700 p-6">
+          <h2 className="text-xl font-semibold text-white mb-6">Investor Details</h2>
           <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
+            <table className="min-w-full divide-y divide-gray-700">
+              <thead className="bg-gray-750">
                 <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">
                     Investor
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">
                     Amount
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">
                     Date
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">
                     Percentage
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">
                     Actions
                   </th>
                 </tr>
               </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
+              <tbody className="bg-gray-800 divide-y divide-gray-700">
                 {statsData.investor_data.map((investor, index) => (
-                  <tr key={index} className="hover:bg-gray-50">
+                  <tr key={index} className="hover:bg-gray-750">
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="flex items-center">
                         <div className="flex-shrink-0 h-10 w-10">
-                          <div className="h-10 w-10 rounded-full bg-gray-200 flex items-center justify-center">
-                            <User className="h-5 w-5 text-gray-600" />
+                          <div className="h-10 w-10 rounded-full bg-gray-700 flex items-center justify-center">
+                            <User className="h-5 w-5 text-gray-400" />
                           </div>
                         </div>
                         <div className="ml-4">
-                          <div className="text-sm font-medium text-gray-900">
+                          <div className="text-sm font-medium text-white">
                             {investor.first_name && investor.last_name 
                               ? `${investor.first_name} ${investor.last_name}`
                               : investor.username
                             }
                           </div>
-                          <div className="text-sm text-gray-500">@{investor.username}</div>
+                          <div className="text-sm text-gray-400">@{investor.username}</div>
                         </div>
                       </div>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-white">
                       {formatCurrency(investor.amount)}
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-400">
                       <div className="flex items-center">
                         <Calendar className="h-4 w-4 mr-1" />
                         {formatDate(investor.invested_at)}
                       </div>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-400">
                       {((investor.amount / statsData.summary.total_invested) * 100).toFixed(1)}%
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-400">
                       <button
                         onClick={() => navigate(`/messages?user=${investor.user_id}`)}
-                        className="inline-flex items-center gap-2 px-3 py-1.5 bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100 transition-colors"
+                        className="inline-flex items-center gap-2 px-3 py-1.5 bg-emerald-900/50 text-emerald-400 rounded-lg hover:bg-emerald-800/50 transition-colors border border-emerald-700/50"
                         title={`Message ${investor.first_name && investor.last_name ? `${investor.first_name} ${investor.last_name}` : investor.username}`}
                       >
                         <MessageSquare className="h-4 w-4" />
@@ -383,30 +383,30 @@ export default function FundStatisticsPage() {
                   </tr>
                 ))}
                 {statsData.others_amount > 0 && (
-                  <tr className="hover:bg-gray-50">
+                  <tr className="hover:bg-gray-750">
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="flex items-center">
                         <div className="flex-shrink-0 h-10 w-10">
-                          <div className="h-10 w-10 rounded-full bg-gray-300 flex items-center justify-center">
-                            <Users className="h-5 w-5 text-gray-600" />
+                          <div className="h-10 w-10 rounded-full bg-gray-600 flex items-center justify-center">
+                            <Users className="h-5 w-5 text-gray-400" />
                           </div>
                         </div>
                         <div className="ml-4">
-                          <div className="text-sm font-medium text-gray-900">Others</div>
-                          <div className="text-sm text-gray-500">Additional investors</div>
+                          <div className="text-sm font-medium text-white">Others</div>
+                          <div className="text-sm text-gray-400">Additional investors</div>
                         </div>
                       </div>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-white">
                       {formatCurrency(statsData.others_amount)}
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-400">
                       -
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-400">
                       {((statsData.others_amount / statsData.summary.total_invested) * 100).toFixed(1)}%
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-400">
                       -
                     </td>
                   </tr>

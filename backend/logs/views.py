@@ -116,15 +116,31 @@ def log_detail(request, pk):
 def business_logs(request, business_id):
     """Get all logs for a specific business"""
     try:
-        business = get_object_or_404(Business, id=business_id)
-        logs = Log.objects.filter(business=business)
+        # Check if business exists
+        try:
+            business = Business.objects.get(id=business_id)
+        except Business.DoesNotExist:
+            return Response(
+                {'error': 'Business not found'}, 
+                status=status.HTTP_404_NOT_FOUND
+            )
+        
+        # Check if user owns the business or has invested in it
+        user_owns_business = business.user == request.user
+        user_has_invested = Investment.objects.filter(
+            business=business, 
+            user=request.user
+        ).exists()
+        
+        if not user_owns_business and not user_has_invested:
+            return Response(
+                {'error': 'Access denied. You must own or have invested in this business to view logs.'}, 
+                status=status.HTTP_403_FORBIDDEN
+            )
+        
+        logs = Log.objects.filter(business=business).order_by('-year', '-month', '-created_at')
         serializer = LogSerializer(logs, many=True)
         return Response(serializer.data)
-    except Business.DoesNotExist:
-        return Response(
-            {'error': f'Business with ID {business_id} not found'}, 
-            status=status.HTTP_404_NOT_FOUND
-        )
     except Exception as e:
         return Response(
             {'error': f'An error occurred: {str(e)}'}, 
@@ -273,3 +289,93 @@ def profit_distributions_dashboard(request):
         'as_owner': owner_data,
         'as_investor': investor_data
     })
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def next_month_year(request):
+    """Get the next available month and year for a business"""
+    try:
+        business_id = request.GET.get('business')
+        if not business_id:
+            return Response(
+                {'error': 'Business ID is required'}, 
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        # Check if business exists and user owns it
+        try:
+            business = Business.objects.get(id=business_id, user=request.user)
+        except Business.DoesNotExist:
+            return Response(
+                {'error': 'Business not found or access denied'}, 
+                status=status.HTTP_404_NOT_FOUND
+            )
+        
+        next_month, next_year = Log.get_next_month_year(business_id)
+        
+        return Response({
+            'month': next_month,
+            'year': next_year
+        })
+    except Exception as e:
+        return Response(
+            {'error': f'An error occurred: {str(e)}'}, 
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR
+        )
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def create_log(request):
+    """Create a new log"""
+    try:
+        # Check if business exists and user owns it
+        business_id = request.data.get('business')
+        if not business_id:
+            return Response(
+                {'error': 'Business ID is required'}, 
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        try:
+            business = Business.objects.get(id=business_id, user=request.user)
+        except Business.DoesNotExist:
+            return Response(
+                {'error': 'Business not found or access denied'}, 
+                status=status.HTTP_404_NOT_FOUND
+            )
+        
+        # Check if log already exists for this month/year
+        month = request.data.get('month')
+        year = request.data.get('year')
+        if month and year:
+            existing_log = Log.objects.filter(
+                business=business, 
+                month=month, 
+                year=year
+            ).first()
+            if existing_log:
+                return Response(
+                    {'error': f'A log for {existing_log.get_month_display()} {year} already exists for this business'}, 
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+        
+        serializer = LogSerializer(data=request.data)
+        if serializer.is_valid():
+            try:
+                log = serializer.save()
+                return Response(serializer.data, status=status.HTTP_201_CREATED)
+            except Exception as e:
+                return Response(
+                    {'error': f'Error saving log: {str(e)}'}, 
+                    status=status.HTTP_500_INTERNAL_SERVER_ERROR
+                )
+        else:
+            return Response(
+                {'error': 'Validation failed', 'details': serializer.errors}, 
+                status=status.HTTP_400_BAD_REQUEST
+            )
+    except Exception as e:
+        return Response(
+            {'error': f'An error occurred: {str(e)}'}, 
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR
+        )

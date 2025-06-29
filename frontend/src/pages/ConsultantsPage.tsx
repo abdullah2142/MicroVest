@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Search, Mail, Phone, MapPin, Star, Filter, X, Send } from 'lucide-react';
 
 interface Consultant {
@@ -38,6 +38,10 @@ const ConsultantsPage: React.FC = () => {
   });
   const [isSending, setIsSending] = useState(false);
   const [emailSent, setEmailSent] = useState(false);
+
+  // Debounced search term
+  const [debouncedSearchTerm, setDebouncedSearchTerm] = useState('');
+  const [isSearching, setIsSearching] = useState(false);
 
   // Mock data for consultants
   const mockConsultants: Consultant[] = [
@@ -113,52 +117,94 @@ const ConsultantsPage: React.FC = () => {
     setFilteredConsultants(mockConsultants);
   }, []);
 
+  // Debounce search term
   useEffect(() => {
-    let filtered = consultants;
+    if (searchTerm !== debouncedSearchTerm) {
+      setIsSearching(true);
+    }
+    
+    const timer = setTimeout(() => {
+      setDebouncedSearchTerm(searchTerm);
+      setIsSearching(false);
+    }, 300);
 
-    // Filter by search term
-    if (searchTerm) {
-      filtered = filtered.filter(consultant =>
-        consultant.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        consultant.expertise.some(exp => exp.toLowerCase().includes(searchTerm.toLowerCase())) ||
-        consultant.bio.toLowerCase().includes(searchTerm.toLowerCase())
-      );
+    return () => clearTimeout(timer);
+  }, [searchTerm, debouncedSearchTerm]);
+
+  useEffect(() => {
+    let filtered = [...consultants]; // Create a copy to avoid mutating original
+
+    // Filter by search term (improved logic)
+    if (debouncedSearchTerm.trim()) {
+      const searchLower = debouncedSearchTerm.toLowerCase().trim();
+      filtered = filtered.filter(consultant => {
+        // Search in name
+        if (consultant.name.toLowerCase().includes(searchLower)) return true;
+        
+        // Search in expertise (exact match or contains)
+        if (consultant.expertise.some(exp => 
+          exp.toLowerCase().includes(searchLower) || 
+          searchLower.includes(exp.toLowerCase())
+        )) return true;
+        
+        // Search in bio
+        if (consultant.bio.toLowerCase().includes(searchLower)) return true;
+        
+        // Search in location
+        if (consultant.location.toLowerCase().includes(searchLower)) return true;
+        
+        return false;
+      });
     }
 
-    // Filter by expertise
+    // Filter by expertise (improved logic)
     if (selectedExpertise !== 'all') {
+      const expertiseLower = selectedExpertise.toLowerCase();
       filtered = filtered.filter(consultant =>
-        consultant.expertise.some(exp => exp.toLowerCase().includes(selectedExpertise.toLowerCase()))
+        consultant.expertise.some(exp => 
+          exp.toLowerCase() === expertiseLower ||
+          exp.toLowerCase().includes(expertiseLower) ||
+          expertiseLower.includes(exp.toLowerCase())
+        )
       );
     }
 
-    // Sort consultants
+    // Sort consultants (improved logic)
     filtered.sort((a, b) => {
       switch (sortBy) {
         case 'rating':
-          return b.rating - a.rating;
+          return b.rating - a.rating; // Highest rating first
         case 'experience':
-          return b.experience - a.experience;
+          return b.experience - a.experience; // Most experience first
         case 'rate':
-          return a.hourlyRate - b.hourlyRate;
+          return a.hourlyRate - b.hourlyRate; // Lowest rate first
         case 'name':
-          return a.name.localeCompare(b.name);
+          return a.name.localeCompare(b.name); // Alphabetical
         default:
           return 0;
       }
     });
 
     setFilteredConsultants(filtered);
-  }, [consultants, searchTerm, selectedExpertise, sortBy]);
+  }, [consultants, debouncedSearchTerm, selectedExpertise, sortBy]);
 
   const expertiseOptions = [
     'all',
     'business strategy',
     'financial planning',
+    'market analysis',
     'technology',
+    'digital transformation',
+    'product development',
     'marketing',
+    'brand strategy',
+    'social media',
     'operations',
-    'human resources'
+    'supply chain',
+    'process optimization',
+    'human resources',
+    'organizational development',
+    'leadership training'
   ];
 
   const handleContact = (consultant: Consultant) => {
@@ -194,6 +240,14 @@ const ConsultantsPage: React.FC = () => {
     setEmailSent(false);
   };
 
+  const clearAllFilters = () => {
+    setSearchTerm('');
+    setSelectedExpertise('all');
+    setSortBy('rating');
+  };
+
+  const hasActiveFilters = debouncedSearchTerm || selectedExpertise !== 'all';
+
   return (
     <div className="min-h-screen bg-gray-50 py-8">
       <div className="w-full px-4 sm:px-6 lg:px-8">
@@ -210,14 +264,22 @@ const ConsultantsPage: React.FC = () => {
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
             {/* Search */}
             <div className="relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5" />
+              <Search className={`absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 ${isSearching ? 'text-blue-500 animate-pulse' : 'text-gray-400'}`} />
               <input
                 type="text"
                 placeholder="Search consultants..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full pl-10 pr-10 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               />
+              {searchTerm && (
+                <button
+                  onClick={() => setSearchTerm('')}
+                  className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              )}
             </div>
 
             {/* Expertise Filter */}
@@ -229,7 +291,7 @@ const ConsultantsPage: React.FC = () => {
               >
                 {expertiseOptions.map(option => (
                   <option key={option} value={option}>
-                    {option === 'all' ? 'All Expertise' : option.charAt(0).toUpperCase() + option.slice(1)}
+                    {option === 'all' ? 'All Expertise' : option.split(' ').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ')}
                   </option>
                 ))}
               </select>
@@ -242,18 +304,26 @@ const ConsultantsPage: React.FC = () => {
                 onChange={(e) => setSortBy(e.target.value)}
                 className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               >
-                <option value="rating">Sort by Rating</option>
-                <option value="experience">Sort by Experience</option>
-                <option value="rate">Sort by Rate</option>
-                <option value="name">Sort by Name</option>
+                <option value="rating">Highest Rating</option>
+                <option value="experience">Most Experience</option>
+                <option value="rate">Lowest Rate</option>
+                <option value="name">Name A-Z</option>
               </select>
             </div>
 
-            {/* Results Count */}
-            <div className="flex items-center justify-center">
+            {/* Results Count and Clear Filters */}
+            <div className="flex items-center justify-between">
               <span className="text-gray-600">
                 {filteredConsultants.length} consultant{filteredConsultants.length !== 1 ? 's' : ''} found
               </span>
+              {hasActiveFilters && (
+                <button
+                  onClick={clearAllFilters}
+                  className="text-sm text-blue-600 hover:text-blue-800 font-medium"
+                >
+                  Clear filters
+                </button>
+              )}
             </div>
           </div>
         </div>

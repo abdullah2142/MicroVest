@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import Footer from "../../components/footer";
 import { useUser } from "../../context/UserContext";
 import Notification from '../../components/Notification';
+import { Bookmark, BookmarkCheck } from "lucide-react";
 
 const categories = ["All Categories", "Food & Beverage", "Technology", "Agriculture", "Services", "Manufacturing"];
 
@@ -52,6 +53,8 @@ export default function CataloguePage() {
     title: '',
     message: ''
   });
+
+  const [savedBusinessIds, setSavedBusinessIds] = useState<number[]>([]);
 
   // Check if current user is the owner of a business
   const isOwner = (investment: Investment) => {
@@ -117,6 +120,24 @@ export default function CataloguePage() {
       }
     });
   }, [investments]);
+
+  useEffect(() => {
+    // Fetch saved businesses for the current user
+    const fetchSavedBusinesses = async () => {
+      const token = localStorage.getItem('authToken');
+      if (!token) return;
+      try {
+        const response = await fetch('http://localhost:8000/api/saved-businesses/', {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        if (response.ok) {
+          const data = await response.json();
+          setSavedBusinessIds(data.map((item: any) => item.business.id));
+        }
+      } catch (e) { /* ignore */ }
+    };
+    fetchSavedBusinesses();
+  }, []);
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat("en-US", {
@@ -236,6 +257,30 @@ export default function CataloguePage() {
     }
   };
 
+  const handleToggleSave = async (businessId: number, isCurrentlySaved: boolean) => {
+    const token = localStorage.getItem('authToken');
+    if (!token) {
+      showNotification('error', 'Login Required', 'Please log in to save businesses.');
+      return;
+    }
+    try {
+      const method = isCurrentlySaved ? 'DELETE' : 'POST';
+      const response = await fetch(`http://localhost:8000/api/businesses/${businessId}/toggle-save/`, {
+        method,
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (response.ok || response.status === 201) {
+        setSavedBusinessIds(prev =>
+          isCurrentlySaved ? prev.filter(id => id !== businessId) : [...prev, businessId]
+        );
+      } else {
+        showNotification('error', 'Error', 'Could not update saved status.');
+      }
+    } catch (e) {
+      showNotification('error', 'Error', 'Could not update saved status.');
+    }
+  };
+
   return (
     <div className="flex-1 bg-black text-white p-4 sm:p-6 lg:p-8">
       <div className="w-full">
@@ -302,6 +347,17 @@ export default function CataloguePage() {
                     <div className="relative">
                       <img src={investment.image || "/placeholder.svg"} alt={investment.title} className="w-full h-56 object-cover rounded-t-lg" />
                       <span className="absolute top-3 left-3 bg-white text-black border border-gray-300 px-2 py-1 text-xs font-medium rounded-full">{investment.category}</span>
+                      <button
+                        className="absolute top-3 right-3 z-10"
+                        title={savedBusinessIds.includes(investment.id) ? 'Unsave Business' : 'Save Business'}
+                        onClick={() => handleToggleSave(investment.id, savedBusinessIds.includes(investment.id))}
+                      >
+                        {savedBusinessIds.includes(investment.id) ? (
+                          <BookmarkCheck className="w-6 h-6 text-emerald-600 fill-emerald-600" />
+                        ) : (
+                          <Bookmark className="w-6 h-6 text-gray-800 hover:text-emerald-600" />
+                        )}
+                      </button>
                     </div>
                     <div className="p-6">
                       <h3 
@@ -315,6 +371,7 @@ export default function CataloguePage() {
                         <div className="flex justify-between text-sm"><span className="text-gray-400">Location</span><span className="text-white">{investment.location}</span></div>
                         <div className="flex justify-between text-sm"><span className="text-gray-400">Funding Goal</span><span className="text-white">{formatCurrency(investment.funding_goal)}</span></div>
                         <div className="flex justify-between text-sm"><span className="text-gray-400">Raised</span><span className="text-white">{formatCurrency(investment.current_funding)}</span></div>
+                        <div className="flex justify-between text-sm"><span className="text-gray-400">Remaining</span><span className="text-white">{formatCurrency(investment.funding_goal - investment.current_funding)}</span></div>
                         <div className="w-full bg-gray-700 rounded-full h-2"><div className="bg-emerald-500 h-2 rounded-full" style={{ width: `${calculateProgress(investment.current_funding, investment.funding_goal)}%` }}></div></div>
                         <div className="flex justify-between text-sm"><span className="text-gray-400">Progress</span><span className="text-white">{calculateProgress(investment.current_funding, investment.funding_goal).toFixed(1)}%</span></div>
                         <div className="flex justify-between text-sm"><span className="text-gray-400">Backers</span><span className="text-white">{investment.backers}</span></div>
@@ -351,9 +408,10 @@ export default function CataloguePage() {
                         ) : (
                           <button
                             onClick={() => handleInvestNow(investment)}
-                            className="flex-1 bg-emerald-600 text-white py-2 px-4 rounded-md hover:bg-emerald-700 transition-colors font-medium"
+                            disabled={investment.current_funding === investment.funding_goal}
+                            className="flex-1 bg-emerald-600 text-white py-2 px-4 rounded-md hover:bg-emerald-700 transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed"
                           >
-                            {investment.user_investment_amount > 0 ? 'Invest More' : 'Invest Now'}
+                            {investment.current_funding === investment.funding_goal ? 'Fully Funded' : (investment.user_investment_amount > 0 ? 'Invest More' : 'Invest Now')}
                           </button>
                         )}
                         <button 
@@ -363,6 +421,34 @@ export default function CataloguePage() {
                           View Details
                         </button>
                       </div>
+                      
+                      {/* Additional buttons for fully funded businesses */}
+                      {investment.current_funding === investment.funding_goal && (
+                        <div className="mt-3 flex gap-2">
+                          <button
+                            onClick={() => navigate(`/businesses/${investment.id}/logs`)}
+                            className="flex-1 bg-blue-600 hover:bg-blue-700 text-white py-2 px-3 rounded-md transition-colors font-medium text-sm"
+                          >
+                            Logs
+                          </button>
+                          <button
+                            onClick={() => navigate(`/business/${investment.id}/fund-statistics`)}
+                            className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white py-2 px-3 rounded-md transition-colors font-medium text-sm"
+                          >
+                            Statistics
+                          </button>
+                        </div>
+                      )}
+                      
+                      {/* Active indicator for fully funded businesses */}
+                      {investment.current_funding === investment.funding_goal && (
+                        <div className="mt-3 flex items-center justify-center">
+                          <div className="bg-green-100 text-green-800 px-3 py-1 rounded-full text-xs font-medium flex items-center gap-1">
+                            <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+                            Active
+                          </div>
+                        </div>
+                      )}
                     </div>
                   </div>
                 </div>

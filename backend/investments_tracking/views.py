@@ -267,3 +267,123 @@ def recent_investments(request):
             {'error': f'An error occurred: {str(e)}'}, 
             status=status.HTTP_500_INTERNAL_SERVER_ERROR
         )
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def investor_recent_investments(request):
+    """Get recent investments made by the current investor"""
+    try:
+        # Get recent investments made by the current user
+        recent_investments = Investment.objects.filter(
+            user=request.user
+        ).select_related('business', 'business__user').order_by('-invested_at')[:10]
+        
+        # Enhance the data with business information and share percentage
+        enhanced_data = []
+        for investment in recent_investments:
+            try:
+                business = investment.business
+                
+                # Calculate share percentage
+                total_business_investment = Investment.objects.filter(business=business).aggregate(
+                    total=models.Sum('amount')
+                )['total'] or 0
+                
+                share_percentage = (float(investment.amount) / float(total_business_investment)) * 100 if total_business_investment > 0 else 0
+                
+                # Get business image safely
+                business_image = None
+                try:
+                    if business.images.exists():
+                        business_image = business.images.first().image.url
+                except Exception:
+                    pass
+                
+                enhanced_data.append({
+                    'id': investment.id,
+                    'business_id': business.id,
+                    'business_name': business.title,
+                    'category_name': business.category.name if hasattr(business.category, 'name') else (business.category if business.category else 'Uncategorized'),
+                    'amount_invested': float(investment.amount),
+                    'investment_date': investment.invested_at.isoformat(),
+                    'entrepreneur_name': f"{business.user.first_name} {business.user.last_name}".strip() or business.user.username,
+                    'entrepreneur_id': business.user.id,
+                    'share_percentage': round(share_percentage, 2),
+                    # Additional business details with proper fallbacks
+                    'business_location': getattr(business, 'location', 'Location not specified'),
+                    'business_funding_goal': float(getattr(business, 'funding_goal', 0)),
+                    'business_current_funding': float(getattr(business, 'current_funding', 0)),
+                    'business_backers': getattr(business, 'backers', 0),
+                    'business_image': business_image,
+                    'business_deadline': None,  # Business model doesn't have deadline field
+                    'entrepreneur_first_name': business.user.first_name or '',
+                    'entrepreneur_last_name': business.user.last_name or '',
+                    'entrepreneur_username': business.user.username
+                })
+            except Exception:
+                continue
+        
+        return Response(enhanced_data)
+    except Exception as e:
+        return Response(
+            {'error': f'An error occurred: {str(e)}'}, 
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR
+        )
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def entrepreneur_investors(request):
+    """Get all investors for businesses owned by the current entrepreneur"""
+    try:
+        # Get businesses owned by the current user
+        user_businesses = Business.objects.filter(user=request.user)
+        
+        if not user_businesses.exists():
+            return Response([])
+        
+        # Get all investments in those businesses
+        investments = Investment.objects.filter(
+            business__in=user_businesses
+        ).select_related('user', 'business').order_by('-invested_at')
+        
+        # Group by investor to avoid duplicates
+        investor_data = {}
+        for investment in investments:
+            investor_id = investment.user.id
+            if investor_id not in investor_data:
+                investor_data[investor_id] = {
+                    'investor_id': investment.user.id,
+                    'investor_name': f"{investment.user.first_name} {investment.user.last_name}".strip() or investment.user.username,
+                    'investor_username': investment.user.username,
+                    'investor_email': investment.user.email,
+                    'total_invested_in_my_businesses': 0,
+                    'total_businesses_invested_in': 0,
+                    'investments': []
+                }
+            
+            # Add investment details
+            investor_data[investor_id]['investments'].append({
+                'business_id': investment.business.id,
+                'business_title': investment.business.title,
+                'business_category': investment.business.category,
+                'amount_invested': float(investment.amount),
+                'invested_at': investment.invested_at.isoformat(),
+                'share_percentage': round((float(investment.amount) / float(investment.business.funding_goal)) * 100, 2)
+            })
+            
+            # Update totals
+            investor_data[investor_id]['total_invested_in_my_businesses'] += float(investment.amount)
+            investor_data[investor_id]['total_businesses_invested_in'] = len(set(
+                inv['business_id'] for inv in investor_data[investor_id]['investments']
+            ))
+        
+        # Convert to list and sort by total invested amount
+        result = list(investor_data.values())
+        result.sort(key=lambda x: x['total_invested_in_my_businesses'], reverse=True)
+        
+        return Response(result)
+    except Exception as e:
+        return Response(
+            {'error': f'An error occurred: {str(e)}'}, 
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR
+        )

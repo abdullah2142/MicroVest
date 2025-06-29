@@ -12,6 +12,14 @@ interface Log {
   challenges: string;
   next_steps: string;
   financial_update: string;
+  month: number;
+  year: number;
+  total_revenue: number;
+  total_expense: number;
+  profit_generated: number;
+  formatted_total_revenue: string;
+  formatted_total_expense: string;
+  formatted_profit_generated: string;
   created_at: string;
   updated_at: string;
   business_title: string;
@@ -67,92 +75,111 @@ export default function BusinessLogsPage() {
   };
 
   return (
-    <div className="w-full max-w-[1920px] mx-auto py-10 px-8">
+    <div className="w-full max-w-[1920px] mx-auto py-10 px-8 bg-gray-900 min-h-screen">
       <div className="flex items-center justify-between mb-8">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900 mb-1">Business Logs</h1>
-          <p className="text-gray-500">{businessTitle && (
-            <span>for <span className="font-semibold text-gray-700">{businessTitle}</span></span>
+          <h1 className="text-3xl font-bold text-white mb-1">Business Logs</h1>
+          <p className="text-gray-400">{businessTitle && (
+            <span>for <span className="font-semibold text-gray-300">{businessTitle}</span></span>
           )}</p>
         </div>
         {isOwner && (
           <button
             onClick={() => navigate(`/businesses/${id}/logs/create`)}
-            className="inline-flex items-center gap-2 bg-blue-600 text-white font-semibold px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors"
+            className="inline-flex items-center gap-2 bg-emerald-600 text-white font-semibold px-4 py-2 rounded-lg hover:bg-emerald-700 transition-colors"
           >
             <PlusCircle size={18} />
             Create Log
           </button>
         )}
       </div>
-      {loading && <div className="text-center text-gray-500">Loading logs...</div>}
-      {error && <div className="text-center text-red-500 bg-red-100 p-4 rounded-lg">{error}</div>}
+      {loading && <div className="text-center text-gray-400">Loading logs...</div>}
+      {error && <div className="text-center text-red-400 bg-red-900/20 p-4 rounded-lg border border-red-700">{error}</div>}
       <div className="space-y-6">
         {logs.length === 0 && !loading && (
-          <div className="text-center py-12 bg-gray-100 rounded-lg">
-            <h3 className="text-lg font-semibold text-gray-700">No logs have been posted yet.</h3>
-            {isOwner && <p className="text-gray-500 mt-1">Click the button above to create your first log!</p>}
+          <div className="text-center py-12 bg-gray-800 rounded-lg border border-gray-700">
+            <h3 className="text-lg font-semibold text-gray-300">No logs have been posted yet.</h3>
+            {isOwner && <p className="text-gray-400 mt-1">Click the button above to create your first log!</p>}
           </div>
         )}
         {logs.map((log) => (
-          <div key={log.id} className="bg-white rounded-xl shadow-md border border-gray-200 overflow-hidden">
-            <div className="flex items-center justify-between px-6 py-4 cursor-pointer" onClick={() => toggleExpand(log.id)}>
+          <div key={log.id} className="bg-gray-800 rounded-xl shadow-md border border-gray-700 overflow-hidden">
+            <div className="flex items-center justify-between px-6 py-4 cursor-pointer hover:bg-gray-750" onClick={() => toggleExpand(log.id)}>
               <div>
-                <h2 className="text-xl font-bold text-gray-900 mb-1">{log.title}</h2>
-                <div className="flex items-center gap-3 text-sm text-gray-500">
+                <h2 className="text-xl font-bold text-white mb-1">{log.title}</h2>
+                <div className="flex items-center gap-3 text-sm text-gray-400">
                   <Calendar className="w-4 h-4" />
-                  {new Date(log.created_at).toLocaleDateString()}
+                  {log.month && log.year ? `${log.month}/${log.year}` : new Date(log.created_at).toLocaleDateString()}
                   <User className="w-4 h-4 ml-4" />
                   {log.entrepreneur_name || 'Entrepreneur'}
                 </div>
               </div>
-              <button className="text-gray-400 hover:text-blue-600 transition-colors">
+              <button className="text-gray-400 hover:text-emerald-400 transition-colors">
                 {expanded === log.id ? <ChevronUp /> : <ChevronDown />}
               </button>
             </div>
             {expanded === log.id && (
-              <div className="px-6 pb-6 pt-2 space-y-4 border-t border-gray-100 animate-fade-in">
+              <div className="px-6 pb-6 pt-2 space-y-4 border-t border-gray-700 animate-fade-in">
+                {/* Financial Summary */}
+                <div className="bg-gray-750 rounded-lg p-4 border border-gray-600">
+                  <h4 className="font-semibold text-white mb-3">Financial Summary</h4>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div className="text-center">
+                      <div className="text-sm text-gray-400">Total Revenue</div>
+                      <div className="text-lg font-semibold text-emerald-400">{log.formatted_total_revenue}</div>
+                    </div>
+                    <div className="text-center">
+                      <div className="text-sm text-gray-400">Total Expense</div>
+                      <div className="text-lg font-semibold text-red-400">{log.formatted_total_expense}</div>
+                    </div>
+                    <div className="text-center">
+                      <div className="text-sm text-gray-400">Profit</div>
+                      <div className="text-lg font-semibold text-blue-400">{log.formatted_profit_generated}</div>
+                    </div>
+                  </div>
+                </div>
+                
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div>
-                    <h4 className="font-semibold text-gray-800 mb-1">Progress Update</h4>
-                    <p className="text-gray-600 whitespace-pre-line">{log.progress_update}</p>
+                    <h4 className="font-semibold text-white mb-1">Progress Update</h4>
+                    <p className="text-gray-300 whitespace-pre-line">{log.progress_update}</p>
                   </div>
                   <div>
-                    <h4 className="font-semibold text-gray-800 mb-1">Fund Usage</h4>
-                    <p className="text-gray-600 whitespace-pre-line">{log.fund_usage}</p>
+                    <h4 className="font-semibold text-white mb-1">Fund Usage</h4>
+                    <p className="text-gray-300 whitespace-pre-line">{log.fund_usage}</p>
                   </div>
                   <div>
-                    <h4 className="font-semibold text-gray-800 mb-1">Achievements</h4>
-                    <p className="text-gray-600 whitespace-pre-line">{log.achievements}</p>
+                    <h4 className="font-semibold text-white mb-1">Achievements</h4>
+                    <p className="text-gray-300 whitespace-pre-line">{log.achievements}</p>
                   </div>
                   <div>
-                    <h4 className="font-semibold text-gray-800 mb-1">Next Steps</h4>
-                    <p className="text-gray-600 whitespace-pre-line">{log.next_steps}</p>
+                    <h4 className="font-semibold text-white mb-1">Next Steps</h4>
+                    <p className="text-gray-300 whitespace-pre-line">{log.next_steps}</p>
                   </div>
                   <div>
-                    <h4 className="font-semibold text-gray-800 mb-1">Financial Update</h4>
-                    <p className="text-gray-600 whitespace-pre-line">{log.financial_update}</p>
+                    <h4 className="font-semibold text-white mb-1">Financial Update</h4>
+                    <p className="text-gray-300 whitespace-pre-line">{log.financial_update}</p>
                   </div>
                   {log.challenges && (
                     <div>
-                      <h4 className="font-semibold text-gray-800 mb-1">Challenges</h4>
-                      <p className="text-gray-600 whitespace-pre-line">{log.challenges}</p>
+                      <h4 className="font-semibold text-white mb-1">Challenges</h4>
+                      <p className="text-gray-300 whitespace-pre-line">{log.challenges}</p>
                     </div>
                   )}
                 </div>
                 <div>
-                  <h4 className="font-semibold text-gray-800 mb-2">Full Description</h4>
-                  <p className="text-gray-700 whitespace-pre-line mb-2">{log.content}</p>
+                  <h4 className="font-semibold text-white mb-2">Full Description</h4>
+                  <p className="text-gray-300 whitespace-pre-line mb-2">{log.content}</p>
                 </div>
                 {log.documents && log.documents.length > 0 && (
                   <div>
-                    <h4 className="font-semibold text-gray-800 mb-2">Documents</h4>
+                    <h4 className="font-semibold text-white mb-2">Documents</h4>
                     <div className="flex flex-wrap gap-3">
                       {log.documents.map((doc, i) => (
-                        <a key={i} href={doc.file_url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 px-3 py-2 bg-gray-100 rounded hover:bg-blue-100 transition-colors">
-                          <FileText className="w-4 h-4 text-blue-600" />
-                          <span className="font-medium text-blue-700">{doc.name}</span>
-                          <span className="text-xs text-gray-500">({doc.size})</span>
+                        <a key={i} href={doc.file_url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 px-3 py-2 bg-gray-700 rounded hover:bg-gray-600 transition-colors border border-gray-600">
+                          <FileText className="w-4 h-4 text-emerald-400" />
+                          <span className="font-medium text-emerald-300">{doc.name}</span>
+                          <span className="text-xs text-gray-400">({doc.size})</span>
                         </a>
                       ))}
                     </div>

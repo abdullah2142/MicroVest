@@ -8,6 +8,7 @@ interface Notification {
     id: number;
     message: string;
     read: boolean;
+    created_at: string;
     business_id?: number;
     investorName?: string;
     amount?: number;
@@ -109,6 +110,27 @@ const Navbar: React.FC = () => {
     const handleLogout = () => {
         logout();
         navigate('/login');
+    };
+
+    // Helper function to format timestamp
+    const formatTimestamp = (timestamp: string) => {
+        const date = new Date(timestamp);
+        const now = new Date();
+        const diffInMinutes = Math.floor((now.getTime() - date.getTime()) / (1000 * 60));
+        const diffInHours = Math.floor(diffInMinutes / 60);
+        const diffInDays = Math.floor(diffInHours / 24);
+
+        if (diffInMinutes < 1) {
+            return 'Just now';
+        } else if (diffInMinutes < 60) {
+            return `${diffInMinutes}m ago`;
+        } else if (diffInHours < 24) {
+            return `${diffInHours}h ago`;
+        } else if (diffInDays < 7) {
+            return `${diffInDays}d ago`;
+        } else {
+            return date.toLocaleDateString();
+        }
     };
 
     // Show loading state while authentication is being determined
@@ -265,7 +287,13 @@ const Navbar: React.FC = () => {
                                         <div
                                             key={notification.id}
                                             className={`p-4 border-b border-gray-100 text-sm hover:bg-gray-50 ${!notification.read ? 'bg-blue-50' : ''}
-                                                ${notification.message && (notification.message.includes('sent you a friend request') || notification.message.includes('You are now friends with')) ? 'cursor-pointer hover:bg-blue-100' : ''}`}
+                                                ${notification.message && (
+                                                    notification.message.includes('sent you a friend request') || 
+                                                    notification.message.includes('You are now friends with') ||
+                                                    (notification.business_id && user.userType === 'investor' && notification.message.includes('business report log')) ||
+                                                    (notification.business_id && user.userType === 'investor' && notification.message.includes('profit distribution')) ||
+                                                    (notification.business_id && user.userType === 'entrepreneur' && (notification.message.includes('investment') || notification.message.includes('invested')))
+                                                ) ? 'cursor-pointer hover:bg-blue-100' : ''}`}
                                             onClick={() => {
                                                 if (notification.message && notification.message.includes('sent you a friend request')) {
                                                     navigate('/messages', { state: { openTab: 'friendRequests' } });
@@ -284,22 +312,34 @@ const Navbar: React.FC = () => {
                                                     navigate(`/business/${notification.business_id}/fund-statistics`);
                                                     setIsNotificationsOpen(false);
                                                 } else if (notification.business_id && user.userType === 'investor' && 
-                                                          (notification.message.includes('business report log') || notification.message.includes('profit distribution'))) {
-                                                    // Navigate to business detail page for investors when they receive log or profit distribution notifications
+                                                          notification.message.includes('business report log')) {
+                                                    // Navigate to business logs page for investors when they receive log notifications
+                                                    navigate(`/businesses/${notification.business_id}/logs`);
+                                                    setIsNotificationsOpen(false);
+                                                } else if (notification.business_id && user.userType === 'investor' && 
+                                                          notification.message.includes('profit distribution')) {
+                                                    // Navigate to business detail page for investors when they receive profit distribution notifications
                                                     navigate(`/business/${notification.business_id}`);
                                                     setIsNotificationsOpen(false);
                                                 }
                                             }}
                                         >
-                                            <p>
-                                                {notification.message ? (
-                                                    notification.message
-                                                ) : (
-                                                    <>
-                                                        <span className="font-bold">{notification.investorName}</span> invested <span className="font-bold">${notification.amount}</span> in your business <span className="font-bold">{notification.businessName}</span>.
-                                                    </>
-                                                )}
-                                            </p>
+                                            <div className="flex justify-between items-start">
+                                                <div className="flex-1">
+                                                    <p>
+                                                        {notification.message ? (
+                                                            notification.message
+                                                        ) : (
+                                                            <>
+                                                                <span className="font-bold">{notification.investorName}</span> invested <span className="font-bold">${notification.amount}</span> in your business <span className="font-bold">{notification.businessName}</span>.
+                                                            </>
+                                                        )}
+                                                    </p>
+                                                </div>
+                                                <span className="text-xs text-gray-500 ml-2 flex-shrink-0">
+                                                    {formatTimestamp(notification.created_at)}
+                                                </span>
+                                            </div>
                                         </div>
                                     )) : (
                                         <div className="p-4 text-center text-gray-500">No new notifications</div>

@@ -21,18 +21,21 @@ import {
   LogOut,
   Landmark,
   Coins,
-  Banknote
+  Banknote,
+  Bookmark
 } from "lucide-react"
 import { useUser } from "../../context/UserContext";
 
 // Interface for individual recent investment
 interface RecentInvestment {
   id: number; // Assuming each investment has an ID
+  business_id: number; // Add business_id for navigation
   business_name: string;
   category_name: string;
   amount_invested: number;
   investment_date: string; // Or Date if you parse it
   entrepreneur_name: string; // Name of the entrepreneur associated with the business
+  share_percentage: number; // Share percentage in the business
 }
 
 // Interface for combined user and investor data
@@ -55,32 +58,56 @@ interface DashboardStats {
   portfolio_value: number;
 }
 
-function Sidebar({ active = "Overview", onAddFundsClick }: { active?: string; onAddFundsClick: () => void }) {
+function Sidebar({ active = "Overview", onAddFundsClick, savedBusinesses }: { active?: string; onAddFundsClick: () => void, savedBusinesses: { id: number, title: string }[] }) {
   const navigate = useNavigate();
 
   const nav = [
-    { label: "Overview", icon: Home, action: () => navigate('/dashboard') }, // Navigating to /dashboard for overview
+    { label: "Overview", icon: Home, action: () => navigate('/dashboard') },
     { label: "Add Funds", icon: DollarSign, action: onAddFundsClick },
-    // { label: "View Details", icon: Eye, action: () => navigate('/investment-details') },
     { label: "Settings", icon: Settings, action: () => navigate('/profile') },
   ];
 
   return (
     <aside className="hidden md:flex flex-col w-80 min-h-full bg-white py-8 px-6 gap-3 shadow-[2px_0_20px_rgba(0,0,0,0.08)]">
-      {nav.map((item) => (
-        <button
-          key={item.label}
-          onClick={item.action}
-          className={`flex items-center gap-4 px-5 py-3 rounded-xl text-base font-medium transition-colors ${
-            active === item.label
-              ? "bg-gray-100 text-black"
-              : "text-gray-600 hover:bg-gray-50"
-          }`}
-        >
-          <item.icon className="w-6 h-6" />
-          {item.label}
-        </button>
-      ))}
+      <div>
+        {nav.map((item) => (
+          <button
+            key={item.label}
+            onClick={item.action}
+            className={`flex items-center gap-4 px-5 py-3 rounded-xl text-base font-medium transition-colors ${
+              active === item.label
+                ? "bg-gray-100 text-black"
+                : "text-gray-600 hover:bg-gray-50"
+            }`}
+          >
+            <item.icon className="w-6 h-6" />
+            {item.label}
+          </button>
+        ))}
+      </div>
+      {/* Saved Section immediately after nav */}
+      <div className="mt-8 pt-8 border-t border-gray-200">
+        <div className="flex items-center gap-2 mb-2 text-gray-700 font-semibold">
+          <Bookmark className="w-5 h-5 text-emerald-500" />
+          Saved
+        </div>
+        {savedBusinesses.length === 0 ? (
+          <div className="text-xs text-gray-400">No saved businesses</div>
+        ) : (
+          <ul className="space-y-1">
+            {savedBusinesses.map(biz => (
+              <li key={biz.id}>
+                <button
+                  className="text-sm text-blue-700 hover:underline hover:text-emerald-600"
+                  onClick={() => navigate(`/business/${biz.id}`)}
+                >
+                  {biz.title}
+                </button>
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
     </aside>
   );
 }
@@ -93,6 +120,7 @@ export default function InvestorDashboard() {
   const [recentInvestments, setRecentInvestments] = useState<RecentInvestment[]>([]);
   const { openAddFundsModal } = useUser();
   const navigate = useNavigate();
+  const [savedBusinesses, setSavedBusinesses] = useState<{ id: number, title: string }[]>([]);
 
   useEffect(() => {
     const fetchDashboardData = async () => {
@@ -200,6 +228,7 @@ export default function InvestorDashboard() {
 
           if (investorProfileResponse.ok) {
             const data = await investorProfileResponse.json();
+            
             // Merge investor-specific data into fetchedUserData
             fetchedUserData.total_investments_count =
               data.total_investments_count !== undefined && data.total_investments_count !== null
@@ -227,7 +256,7 @@ export default function InvestorDashboard() {
         // --- 3. Fetch Recent Investments ---
         try {
           const recentInvestmentsResponse = await fetch(
-            "http://localhost:8000/api/investments-tracking/recent-investments/",
+            "http://localhost:8000/api/investments-tracking/investor-recent/",
             {
               headers: {
                 Authorization: `Bearer ${token}`,
@@ -260,6 +289,23 @@ export default function InvestorDashboard() {
 
     fetchDashboardData();
   }, [navigate]); // navigate is in dependency array as it's used inside useEffect
+
+  useEffect(() => {
+    const fetchSaved = async () => {
+      const token = localStorage.getItem('authToken');
+      if (!token) return;
+      try {
+        const response = await fetch('http://localhost:8000/api/saved-businesses/', {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        if (response.ok) {
+          const data = await response.json();
+          setSavedBusinesses(data.map((item: any) => ({ id: item.business.id, title: item.business.title })));
+        }
+      } catch (e) { /* ignore */ }
+    };
+    fetchSaved();
+  }, []);
 
   const formatCurrency = (amount: number | undefined) => {
     if (amount === undefined || isNaN(amount)) return "$0";
@@ -307,7 +353,7 @@ export default function InvestorDashboard() {
     <div className="min-h-screen bg-gray-50 flex flex-col">
       <div className="flex flex-1">
         {/* Sidebar */}
-        <Sidebar active="Overview" onAddFundsClick={() => openAddFundsModal()} />
+        <Sidebar active="Overview" onAddFundsClick={() => openAddFundsModal()} savedBusinesses={savedBusinesses} />
 
         {/* Main Content */}
         <main className="flex-1 flex flex-col lg:flex-row lg:gap-8 p-6 lg:p-8">
@@ -346,7 +392,10 @@ export default function InvestorDashboard() {
             {/* Stats Cards */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-10">
               {/* Total no of investments */}
-              <div className="bg-white rounded-2xl shadow-[0_8px_30px_rgba(0,0,0,0.08)] p-6">
+              <div 
+                className="bg-white rounded-2xl shadow-[0_8px_30px_rgba(0,0,0,0.08)] p-6 cursor-pointer hover:shadow-[0_8px_30px_rgba(0,0,0,0.12)] transition-shadow"
+                onClick={() => navigate('/my-investments')}
+              >
                 <div className="flex items-center justify-between mb-4">
                   <div className="p-3 bg-blue-100 rounded-xl">
                     <Landmark className="w-6 h-6 text-blue-600" />
@@ -406,6 +455,7 @@ export default function InvestorDashboard() {
                       <th className="text-left py-4 px-6 font-semibold text-gray-900">Business</th>
                       <th className="text-left py-4 px-6 font-semibold text-gray-900">Category</th>
                       <th className="text-left py-4 px-6 font-semibold text-gray-900">Amount Invested</th>
+                      <th className="text-left py-4 px-6 font-semibold text-gray-900">Share %</th>
                       <th className="text-left py-4 px-6 font-semibold text-gray-900">Date</th>
                       <th className="text-left py-4 px-6 font-semibold text-gray-900">Entrepreneur</th>
                     </tr>
@@ -418,7 +468,10 @@ export default function InvestorDashboard() {
                           className="border-b border-gray-100 hover:bg-gray-50"
                         >
                           <td className="py-4 px-6">
-                            <div className="font-medium text-gray-900">
+                            <div 
+                              className="font-medium text-gray-900 cursor-pointer hover:text-blue-600 hover:underline"
+                              onClick={() => navigate(`/business/${investment.business_id}`)}
+                            >
                               {investment.business_name}
                             </div>
                           </td>
@@ -442,6 +495,9 @@ export default function InvestorDashboard() {
                             {formatCurrency(investment.amount_invested)}
                           </td>
                           <td className="py-4 px-6 text-gray-600">
+                            {formatPercentage(investment.share_percentage)}
+                          </td>
+                          <td className="py-4 px-6 text-gray-600">
                             {new Date(investment.investment_date).toLocaleDateString()}
                           </td>
                           <td className="py-4 px-6 text-gray-600">
@@ -451,7 +507,7 @@ export default function InvestorDashboard() {
                       ))
                     ) : (
                       <tr>
-                        <td colSpan={5} className="py-8 px-6 text-center text-gray-500">
+                        <td colSpan={6} className="py-8 px-6 text-center text-gray-500">
                           No recent investments found.
                         </td>
                       </tr>

@@ -18,6 +18,7 @@ import {
   Eye,
   Share2,
   Bookmark,
+  BookmarkCheck,
   ExternalLink,
   Calendar,
   MapPin,
@@ -95,6 +96,7 @@ export default function BusinessDetailPage() {
     title: '',
     message: ''
   });
+  const [isSaved, setIsSaved] = useState(false);
 
   const currentUserId = localStorage.getItem('userId');
   const isOwner = businessData && currentUserId && businessData.user.toString() === currentUserId;
@@ -136,6 +138,24 @@ export default function BusinessDetailPage() {
     if (id) {
       fetchBusinessDetails();
     }
+  }, [id]);
+
+  useEffect(() => {
+    // Fetch saved state for this business
+    const fetchSaved = async () => {
+      const token = localStorage.getItem('authToken');
+      if (!token || !id) return;
+      try {
+        const response = await fetch('http://localhost:8000/api/saved-businesses/', {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        if (response.ok) {
+          const data = await response.json();
+          setIsSaved(data.some((item: any) => item.business.id === parseInt(id)));
+        }
+      } catch (e) { /* ignore */ }
+    };
+    fetchSaved();
   }, [id]);
 
   const calculateDaysLeft = (deadline: string) => {
@@ -337,6 +357,28 @@ export default function BusinessDetailPage() {
     } finally {
         setIsInvesting(false);
         setInvestmentAmount('');
+    }
+  };
+
+  const handleToggleSave = async () => {
+    const token = localStorage.getItem('authToken');
+    if (!token || !id) {
+      showNotification('error', 'Login Required', 'Please log in to save businesses.');
+      return;
+    }
+    try {
+      const method = isSaved ? 'DELETE' : 'POST';
+      const response = await fetch(`http://localhost:8000/api/businesses/${id}/toggle-save/`, {
+        method,
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (response.ok || response.status === 201) {
+        setIsSaved(!isSaved);
+      } else {
+        showNotification('error', 'Error', 'Could not update saved status.');
+      }
+    } catch (e) {
+      showNotification('error', 'Error', 'Could not update saved status.');
     }
   };
 
@@ -563,13 +605,34 @@ export default function BusinessDetailPage() {
     <div className="flex-1 bg-gray-50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Header */}
-        <div className="mb-8">
+        <div className="mb-8 flex items-center justify-between">
           <button onClick={() => navigate(-1)} className="inline-flex items-center gap-2 text-gray-600 hover:text-gray-900 mb-4">
             <ArrowLeft size={16} /> Back to opportunities
           </button>
-          <h1 className="text-4xl font-bold text-gray-900">{title}</h1>
-          <p className="text-lg text-gray-500 mt-2">{tagline}</p>
+          <button
+            className="ml-auto"
+            title={isSaved ? 'Unsave Business' : 'Save Business'}
+            onClick={handleToggleSave}
+          >
+            {isSaved ? (
+              <BookmarkCheck className="w-7 h-7 text-emerald-600 fill-emerald-600" />
+            ) : (
+              <Bookmark className="w-7 h-7 text-gray-700 hover:text-emerald-600" />
+            )}
+          </button>
         </div>
+        <h1 className="text-4xl font-bold text-gray-900">{title}</h1>
+        <p className="text-lg text-gray-500 mt-2">{tagline}</p>
+        
+        {/* Active indicator for fully funded businesses */}
+        {current_funding === funding_goal && (
+          <div className="mt-4 flex items-center gap-2">
+            <div className="bg-green-100 text-green-800 px-3 py-1 rounded-full text-sm font-medium flex items-center gap-2">
+              <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+              Active Business
+            </div>
+          </div>
+        )}
 
         <div className="flex gap-8">
           {/* Sidebar */}
@@ -586,10 +649,14 @@ export default function BusinessDetailPage() {
                     <span className="text-gray-500">raised of {formatCurrency(funding_goal)}</span>
                   </div>
                 </div>
-                <div className="grid grid-cols-1 gap-4 text-center mb-6">
+                <div className="grid grid-cols-2 gap-4 text-center mb-6">
                   <div>
                     <p className="font-bold text-2xl text-gray-900">{backers}</p>
                     <p className="text-sm text-gray-500">Investors</p>
+                  </div>
+                  <div>
+                    <p className="font-bold text-2xl text-orange-600">{formatCurrency(funding_goal - current_funding)}</p>
+                    <p className="text-sm text-gray-500">Remaining</p>
                   </div>
                 </div>
 
@@ -607,6 +674,44 @@ export default function BusinessDetailPage() {
                         <span className="font-semibold text-blue-900">{businessData.user_investment_percentage}%</span>
                       </div>
                     </div>
+                  </div>
+                )}
+
+                {/* Investment Actions for Investors */}
+                {!isOwner && !isEntrepreneur && user.isAuthenticated && businessData.user_investment_amount > 0 && (
+                  <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+                    <h3 className="font-semibold text-lg mb-4">Investment Actions</h3>
+                    <div className="space-y-3">
+                      <button 
+                        onClick={() => navigate(`/businesses/${businessData.id}/logs`)}
+                        disabled={businessData.current_funding !== businessData.funding_goal}
+                        className={`w-full flex items-center justify-center gap-2 px-4 py-2 rounded-lg transition-colors ${
+                          businessData.current_funding === businessData.funding_goal
+                            ? 'bg-blue-600 text-white hover:bg-blue-700'
+                            : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                        }`}
+                      >
+                        <FileText className="h-4 w-4" />
+                        View Logs
+                      </button>
+                      <button 
+                        onClick={() => navigate(`/business/${businessData.id}/fund-statistics`)}
+                        disabled={businessData.current_funding !== businessData.funding_goal}
+                        className={`w-full flex items-center justify-center gap-2 px-4 py-2 rounded-lg transition-colors ${
+                          businessData.current_funding === businessData.funding_goal
+                            ? 'bg-green-600 text-white hover:bg-green-700'
+                            : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                        }`}
+                      >
+                        <BarChart className="h-4 w-4" />
+                        Statistics
+                      </button>
+                    </div>
+                    {businessData.current_funding !== businessData.funding_goal && (
+                      <p className="text-xs text-gray-500 mt-2 text-center">
+                        Logs and statistics will be available once the business is fully funded
+                      </p>
+                    )}
                   </div>
                 )}
 
@@ -671,14 +776,21 @@ export default function BusinessDetailPage() {
                     </div>
                     <button 
                       onClick={handleInvest}
-                      className={`w-full font-bold py-3 px-4 rounded-lg transition-colors disabled:opacity-50 ${
-                        businessData.user_investment_amount > 0 
-                          ? 'bg-blue-600 text-white hover:bg-blue-700' 
-                          : 'bg-gray-800 text-white hover:bg-gray-900'
+                      disabled={parseFloat(investmentAmount) < min_investment || current_funding === funding_goal}
+                      className={`w-full font-bold py-3 px-4 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${
+                        current_funding === funding_goal
+                          ? 'bg-gray-400 text-gray-600 cursor-not-allowed'
+                          : businessData.user_investment_amount > 0 
+                            ? 'bg-blue-600 text-white hover:bg-blue-700' 
+                            : 'bg-gray-800 text-white hover:bg-gray-900'
                       }`}
-                      disabled={parseFloat(investmentAmount) < min_investment}
                     >
-                      {businessData.user_investment_amount > 0 ? 'Invest More' : 'Invest Now'}
+                      {current_funding === funding_goal 
+                        ? 'Fully Funded' 
+                        : businessData.user_investment_amount > 0 
+                          ? 'Invest More' 
+                          : 'Invest Now'
+                      }
                     </button>
                   </div>
                 )}
@@ -701,7 +813,7 @@ export default function BusinessDetailPage() {
                         <p className="text-sm text-gray-500">Business Owner</p>
                       </div>
                     </div>
-                    {businessData.entrepreneur_user_id && (
+                    {businessData.entrepreneur_user_id && !isOwner && (
                       <button 
                         onClick={handleMessageEntrepreneur}
                         className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
