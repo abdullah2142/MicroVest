@@ -8,7 +8,6 @@ import {
   FileText,
   Monitor,
   Plus,
-  Calendar as CalendarIcon,
   Building,
 } from "lucide-react"
 
@@ -63,12 +62,6 @@ interface EntrepreneurMetrics {
   total_assets: number;
 }
 
-const schedule = [
-  { title: "Investor Meeting", time: "10:00 AM - 11:00 AM" },
-  { title: "Team Check-in", time: "2:00 PM - 3:00 PM" },
-  { title: "Pitch Deck Review", time: "4:00 PM - 5:00 PM" },
-]
-
 function Sidebar({ active = "Overview" }) {
   const navigate = useNavigate();
   
@@ -95,56 +88,6 @@ function Sidebar({ active = "Overview" }) {
         </button>
       ))}
     </aside>
-  )
-}
-
-function CalendarWidget() {
-  // Simple static July 2024 calendar for demo
-  const days = ["S", "M", "T", "W", "T", "F", "S"]
-  const dates = Array(31)
-    .fill(0)
-    .map((_, i) => i + 1)
-  return (
-    <div className="bg-white rounded-2xl shadow-[0_4px_20px_rgba(0,0,0,0.08)] p-8 mr-8 lg:mr-16">
-      <div className="flex items-center justify-between mb-6">
-        <span className="font-bold text-xl">July 2024</span>
-        <CalendarIcon className="w-6 h-6 text-gray-400" />
-      </div>
-      <div className="grid grid-cols-7 text-sm text-gray-400 mb-3">
-        {days.map((d) => (
-          <div key={d} className="text-center font-medium">{d}</div>
-        ))}
-      </div>
-      <div className="grid grid-cols-7 gap-3">
-        {Array(5).fill(null).map((_, i) => <div key={i}></div>)}
-        {dates.map((d) => (
-          <div
-            key={d}
-            className={`w-12 h-12 flex items-center justify-center rounded-full text-base font-medium ${
-              d === 5 ? "bg-gray-900 text-white" : "text-gray-700 hover:bg-gray-100"
-            }`}
-          >
-            {d}
-          </div>
-        ))}
-      </div>
-    </div>
-  )
-}
-
-function ScheduleWidget() {
-  return (
-    <div className="bg-white rounded-xl border p-4">
-      <div className="font-semibold mb-3">Schedule</div>
-      <ul className="space-y-2">
-        {schedule.map((item) => (
-          <li key={item.title}>
-            <div className="font-medium text-sm text-gray-900">{item.title}</div>
-            <div className="text-xs text-gray-500">{item.time}</div>
-          </li>
-        ))}
-      </ul>
-    </div>
   )
 }
 
@@ -466,10 +409,6 @@ export default function EntrepreneurDashboard() {
               </div>
             </div>
           </section>
-          {/* Right Pane */}
-          <aside className="w-full lg:w-96 flex-shrink-0 px-6 py-8">
-            <CalendarWidget />
-          </aside>
         </main>
       </div>
     </div>

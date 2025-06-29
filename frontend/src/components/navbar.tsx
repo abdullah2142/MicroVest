@@ -124,7 +124,6 @@ const Navbar: React.FC = () => {
                             <Link to="/catalogue" className="hover:text-gray-300 transition-colors font-medium">Browse Businesses</Link>
                         </>
                     )}
-                    <Link to="/profit-distributions" className="hover:text-gray-300 transition-colors font-medium">Profit Distributions</Link>
                     <Link to="/consultants" className="hover:text-gray-300 transition-colors font-medium">Look for Consultants</Link>
                     <Link to="/dashboard" className="hover:text-gray-300 transition-colors font-medium">Dashboard</Link>
                 </div>
