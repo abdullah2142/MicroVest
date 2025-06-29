@@ -8,6 +8,8 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework.permissions import AllowAny, IsAuthenticated # Allows unauthenticated users to access these views
 from rest_framework_simplejwt.tokens import RefreshToken # Used for generating JWTs
+from django.conf import settings
+import os
 
 from .serializers import UserRegisterSerializer, UserLoginSerializer, UserProfileUpdateSerializer
 from .models import CustomUser # <--- ENSURE CustomUser IS IMPORTED HERE
@@ -76,3 +78,75 @@ class UserProfileUpdateView(APIView):
             "phone_number": user.phone_number,
             "user_type": user.user_type,
         }, status=status.HTTP_200_OK)
+
+class UserProfileView(APIView):
+    permission_classes = [IsAuthenticated] # Requires authentication
+
+    def get(self, request, *args, **kwargs):
+        user = request.user
+        profile_picture_url = None
+        
+        if user.prof_pic:
+            profile_picture_url = request.build_absolute_uri(user.prof_pic.url)
+
+        return Response({
+            "username": user.username,
+            "email": user.email,
+            "first_name": user.first_name,
+            "last_name": user.last_name,
+            "phone_number": user.phone_number,
+            "user_type": user.user_type,
+            "prof_pic": profile_picture_url,
+        }, status=status.HTTP_200_OK)
+
+class UserProfilePictureUploadView(APIView):
+    permission_classes = [IsAuthenticated] # Requires authentication
+
+    def post(self, request, *args, **kwargs):
+        try:
+            # Check if profile_picture is in the request
+            if 'profile_picture' not in request.FILES:
+                return Response({
+                    'error': 'No profile picture provided'
+                }, status=status.HTTP_400_BAD_REQUEST)
+
+            profile_picture = request.FILES['profile_picture']
+            
+            # Validate file type
+            allowed_types = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif']
+            if profile_picture.content_type not in allowed_types:
+                return Response({
+                    'error': 'Invalid file type. Please upload a JPEG, PNG, or GIF image.'
+                }, status=status.HTTP_400_BAD_REQUEST)
+
+            # Validate file size (max 5MB)
+            if profile_picture.size > 5 * 1024 * 1024:
+                return Response({
+                    'error': 'File size too large. Please upload an image smaller than 5MB.'
+                }, status=status.HTTP_400_BAD_REQUEST)
+
+            # Delete old profile picture if it exists
+            if request.user.prof_pic:
+                try:
+                    old_pic_path = request.user.prof_pic.path
+                    if os.path.exists(old_pic_path):
+                        os.remove(old_pic_path)
+                except Exception as e:
+                    print(f"Error deleting old profile picture: {e}")
+
+            # Save new profile picture
+            request.user.prof_pic = profile_picture
+            request.user.save()
+
+            # Return the URL of the uploaded image
+            profile_picture_url = request.build_absolute_uri(request.user.prof_pic.url)
+
+            return Response({
+                'message': 'Profile picture uploaded successfully',
+                'profile_picture_url': profile_picture_url
+            }, status=status.HTTP_200_OK)
+
+        except Exception as e:
+            return Response({
+                'error': f'An error occurred while uploading the profile picture: {str(e)}'
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)

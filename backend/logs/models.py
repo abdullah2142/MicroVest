@@ -2,6 +2,7 @@ from django.db import models
 from django.contrib.auth import get_user_model
 from investments.models import Business
 from investments_tracking.models import Investment
+from decimal import Decimal
 
 User = get_user_model()
 
@@ -9,12 +10,12 @@ class Log(models.Model):
     business = models.ForeignKey(Business, on_delete=models.CASCADE, related_name='logs')
     title = models.CharField(max_length=200)
     content = models.TextField()
-    fund_usage = models.TextField(help_text="How the funds are being used")
-    progress_update = models.TextField(help_text="Progress made with the funds")
-    achievements = models.TextField(help_text="Key achievements and milestones")
+    fund_usage = models.TextField(blank=True, null=True, help_text="How the funds are being used")
+    progress_update = models.TextField(blank=True, null=True, help_text="Progress made with the funds")
+    achievements = models.TextField(blank=True, null=True, help_text="Key achievements and milestones")
     challenges = models.TextField(blank=True, null=True, help_text="Challenges faced and how they were overcome")
-    next_steps = models.TextField(help_text="Planned next steps")
-    financial_update = models.TextField(help_text="Financial performance and metrics")
+    next_steps = models.TextField(blank=True, null=True, help_text="Planned next steps")
+    financial_update = models.TextField(blank=True, null=True, help_text="Financial performance and metrics")
     
     # Profit section
     profit_generated = models.DecimalField(max_digits=12, decimal_places=2, default=0.00, help_text="Profit generated in this period")
@@ -34,7 +35,9 @@ class Log(models.Model):
     @property
     def profit_retained(self):
         """Calculate retained profit (generated - distributed)"""
-        return self.profit_generated - self.profit_distributed
+        generated = Decimal(str(self.profit_generated or 0))
+        distributed = Decimal(str(self.profit_distributed or 0))
+        return generated - distributed
     
     @property
     def formatted_profit_generated(self):

@@ -103,45 +103,48 @@ const Navbar: React.FC = () => {
 
     return (
         <nav className="bg-black text-white shadow-md">
-            <div className="container mx-auto px-6 py-3 flex justify-between items-center">
-                <div className="flex items-center">
-                    <Link to="/" className="flex items-center space-x-2">
-                        <div className="bg-white p-1.5 rounded-md">
-                            <TrendingUp className="h-5 w-5 text-black" />
+            <div className="container mx-auto px-8 py-5 flex justify-between items-center">
+                {/* Left Box - Logo */}
+                <div className="flex items-center flex-shrink-0">
+                    <Link to="/" className="flex items-center space-x-3">
+                        <div className="bg-white p-2 rounded-md">
+                            <TrendingUp className="h-6 w-6 text-black" />
                         </div>
-                        <span className="text-xl font-bold tracking-tight">Microvest</span>
+                        <span className="text-2xl font-bold tracking-tight">Microvest</span>
                     </Link>
                 </div>
 
-                <div className="hidden md:flex items-center space-x-6">
+                {/* Middle Box - Navigation Links */}
+                <div className="hidden md:flex items-center space-x-8 flex-shrink-0">
                     {isInvestor ? (
-                         <Link to="/catalogue" className="hover:text-gray-300">Browse Businesses</Link>
+                         <Link to="/catalogue" className="hover:text-gray-300 transition-colors font-medium">Browse Businesses</Link>
                     ) : (
                         <>
-                            <Link to="/my-businesses" className="hover:text-gray-300">My Businesses</Link>
-                            <Link to="/catalogue" className="hover:text-gray-300">Browse Businesses</Link>
+                            <Link to="/my-businesses" className="hover:text-gray-300 transition-colors font-medium">My Businesses</Link>
+                            <Link to="/catalogue" className="hover:text-gray-300 transition-colors font-medium">Browse Businesses</Link>
                         </>
                     )}
-                    <Link to="/profit-distributions" className="hover:text-gray-300">Profit Distributions</Link>
-                    <Link to="/consultants" className="hover:text-gray-300">Look for Consultants</Link>
-                    <Link to="/dashboard" className="hover:text-gray-300">Dashboard</Link>
+                    <Link to="/profit-distributions" className="hover:text-gray-300 transition-colors font-medium">Profit Distributions</Link>
+                    <Link to="/consultants" className="hover:text-gray-300 transition-colors font-medium">Look for Consultants</Link>
+                    <Link to="/dashboard" className="hover:text-gray-300 transition-colors font-medium">Dashboard</Link>
                 </div>
 
-                <div className="flex items-center space-x-4">
+                {/* Right Box - Actions and User Menu */}
+                <div className="flex items-center space-x-6 flex-shrink-0">
                     {isInvestor ? (
-                         <button onClick={() => navigate('/add-funds')} className="bg-white text-black font-semibold px-4 py-2 rounded-lg flex items-center space-x-2 hover:bg-gray-200">
+                         <button onClick={() => navigate('/add-funds')} className="bg-white text-black font-semibold px-5 py-2.5 rounded-lg flex items-center space-x-2 hover:bg-gray-200 transition-colors">
                             <Plus size={18} />
                             <span>Add Funds</span>
                         </button>
                     ) : (
-                        <button onClick={() => navigate('/pitch')} className="bg-white text-black font-semibold px-4 py-2 rounded-lg flex items-center space-x-2 hover:bg-gray-200">
+                        <button onClick={() => navigate('/pitch')} className="bg-white text-black font-semibold px-5 py-2.5 rounded-lg flex items-center space-x-2 hover:bg-gray-200 transition-colors">
                             <Plus size={18} />
                             <span>Pitch Idea</span>
                         </button>
                     )}
                    
-                    <Link to="/messages" className="relative p-2 rounded-full hover:bg-gray-800">
-                        <MessageSquare size={20} />
+                    <Link to="/messages" className="relative p-2.5 rounded-full hover:bg-gray-800 transition-colors">
+                        <MessageSquare size={22} />
                     </Link>
                     
                     {/* Notifications Area */}
@@ -149,11 +152,11 @@ const Navbar: React.FC = () => {
                         <button
                             ref={notificationButtonRef}
                             onClick={() => setIsNotificationsOpen(!isNotificationsOpen)}
-                            className="relative p-2 rounded-full hover:bg-gray-800 transition-colors cursor-pointer"
+                            className="relative p-2.5 rounded-full hover:bg-gray-800 transition-colors cursor-pointer"
                         >
-                            <Bell size={20} />
+                            <Bell size={22} />
                             {unreadNotificationsCount > 0 && (
-                                <span className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-xs text-white">
+                                <span className="absolute -top-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-red-500 text-xs text-white font-semibold">
                                     {unreadNotificationsCount}
                                 </span>
                             )}
@@ -188,12 +191,12 @@ const Navbar: React.FC = () => {
                         )}
                     </div>
                     
-                    <Link to="/profile" className="p-2 rounded-full hover:bg-gray-800">
-                        <UserIcon size={20} />
+                    <Link to="/profile" className="p-2.5 rounded-full hover:bg-gray-800 transition-colors">
+                        <UserIcon size={22} />
                     </Link>
 
-                    <button onClick={handleLogout} title="Logout" className="p-2 rounded-full hover:bg-gray-800">
-                        <LogOut size={20} />
+                    <button onClick={handleLogout} title="Logout" className="p-2.5 rounded-full hover:bg-gray-800 transition-colors">
+                        <LogOut size={22} />
                     </button>
                 </div>
             </div>

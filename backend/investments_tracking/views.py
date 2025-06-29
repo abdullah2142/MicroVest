@@ -46,7 +46,14 @@ class UserInvestmentsListView(generics.ListAPIView):
     permission_classes = [IsAuthenticated]
     
     def get_queryset(self):
-        return Investment.objects.filter(user=self.request.user)
+        try:
+            return Investment.objects.filter(user=self.request.user)
+        except Exception as e:
+            import traceback
+            print('Error in UserInvestmentsListView:', e)
+            traceback.print_exc()
+            from rest_framework.exceptions import APIException
+            raise APIException(f'Error fetching investments: {e}')
 
 class BusinessInvestmentsListView(generics.ListAPIView):
     serializer_class = InvestmentSerializer

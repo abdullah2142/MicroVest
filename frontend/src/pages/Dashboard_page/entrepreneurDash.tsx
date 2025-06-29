@@ -2,22 +2,14 @@
 import { useState, useEffect } from "react"
 import { useNavigate } from "react-router-dom"
 import {
-  TrendingUp,
-  DollarSign,
-  Users,
-  BarChart3,
-  ArrowUpRight,
-  ArrowDownRight,
-  Plus,
-  Edit,
-  Share,
-  MessageSquare,
-  Target,
-  Building,
-  Eye,
-  Download,
+  Home,
+  Layers,
+  Users as UsersIcon,
   FileText,
-  Calendar,
+  Monitor,
+  Plus,
+  Calendar as CalendarIcon,
+  Building,
 } from "lucide-react"
 
 interface Business {
@@ -60,12 +52,109 @@ interface DashboardStats {
   recent_logs: Log[];
 }
 
+interface EntrepreneurMetrics {
+  total_businesses_created: number;
+  total_funding_raised: number;
+  total_investors: number;
+  total_profit_generated: number;
+  success_rate: number;
+  average_investment_size: number;
+  annual_revenue: number;
+  total_assets: number;
+}
+
+const schedule = [
+  { title: "Investor Meeting", time: "10:00 AM - 11:00 AM" },
+  { title: "Team Check-in", time: "2:00 PM - 3:00 PM" },
+  { title: "Pitch Deck Review", time: "4:00 PM - 5:00 PM" },
+]
+
+function Sidebar({ active = "Overview" }) {
+  const navigate = useNavigate();
+  
+  const nav = [
+    { label: "Overview", icon: Home, action: () => {} },
+    { label: "Business Details", icon: Building, action: () => navigate('/my-businesses') },
+    { label: "Documentation", icon: FileText, action: () => navigate('/documentation') },
+    { label: "Settings", icon: Monitor, action: () => navigate('/profile') },
+  ]
+  return (
+    <aside className="hidden md:flex flex-col w-72 min-h-full bg-white py-8 px-6 gap-3 shadow-[2px_0_20px_rgba(0,0,0,0.08)]">
+      {nav.map((item) => (
+        <button
+          key={item.label}
+          onClick={item.action}
+          className={`flex items-center gap-4 px-5 py-3 rounded-xl text-base font-medium transition-colors ${
+            active === item.label
+              ? "bg-gray-100 text-black"
+              : "text-gray-600 hover:bg-gray-50"
+          }`}
+        >
+          <item.icon className="w-6 h-6" />
+          {item.label}
+        </button>
+      ))}
+    </aside>
+  )
+}
+
+function CalendarWidget() {
+  // Simple static July 2024 calendar for demo
+  const days = ["S", "M", "T", "W", "T", "F", "S"]
+  const dates = Array(31)
+    .fill(0)
+    .map((_, i) => i + 1)
+  return (
+    <div className="bg-white rounded-2xl shadow-[0_4px_20px_rgba(0,0,0,0.08)] p-8 mr-8 lg:mr-16">
+      <div className="flex items-center justify-between mb-6">
+        <span className="font-bold text-xl">July 2024</span>
+        <CalendarIcon className="w-6 h-6 text-gray-400" />
+      </div>
+      <div className="grid grid-cols-7 text-sm text-gray-400 mb-3">
+        {days.map((d) => (
+          <div key={d} className="text-center font-medium">{d}</div>
+        ))}
+      </div>
+      <div className="grid grid-cols-7 gap-3">
+        {Array(5).fill(null).map((_, i) => <div key={i}></div>)}
+        {dates.map((d) => (
+          <div
+            key={d}
+            className={`w-12 h-12 flex items-center justify-center rounded-full text-base font-medium ${
+              d === 5 ? "bg-gray-900 text-white" : "text-gray-700 hover:bg-gray-100"
+            }`}
+          >
+            {d}
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+function ScheduleWidget() {
+  return (
+    <div className="bg-white rounded-xl border p-4">
+      <div className="font-semibold mb-3">Schedule</div>
+      <ul className="space-y-2">
+        {schedule.map((item) => (
+          <li key={item.title}>
+            <div className="font-medium text-sm text-gray-900">{item.title}</div>
+            <div className="text-xs text-gray-500">{item.time}</div>
+          </li>
+        ))}
+      </ul>
+    </div>
+  )
+}
+
 export default function EntrepreneurDashboard() {
-  const [activeTab, setActiveTab] = useState("overview")
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [stats, setStats] = useState<DashboardStats | null>(null)
   const [businesses, setBusinesses] = useState<Business[]>([])
+  const [metrics, setMetrics] = useState<EntrepreneurMetrics | null>(null)
+  const [profilePicture, setProfilePicture] = useState<string | null>(null)
   const navigate = useNavigate()
 
   useEffect(() => {
@@ -76,6 +165,28 @@ export default function EntrepreneurDashboard() {
         const token = localStorage.getItem('authToken')
         if (!token) {
           throw new Error('No authentication token found')
+        }
+
+        // Fetch user profile data to get profile picture
+        try {
+          const profileResponse = await fetch('http://localhost:8000/api/users/profile/', {
+            headers: {
+              'Authorization': `Bearer ${token}`,
+              'Content-Type': 'application/json'
+            }
+          })
+          
+          if (profileResponse.ok) {
+            const profileData = await profileResponse.json()
+            if (profileData.prof_pic) {
+              setProfilePicture(profileData.prof_pic)
+              localStorage.setItem('prof_pic', profileData.prof_pic)
+            }
+          }
+        } catch (profileError) {
+          console.warn('Could not fetch profile picture:', profileError)
+          // Fallback to localStorage
+          setProfilePicture(localStorage.getItem('prof_pic'))
         }
 
         // Fetch user's businesses
@@ -94,11 +205,17 @@ export default function EntrepreneurDashboard() {
         setBusinesses(businessesData)
 
         // Calculate dashboard stats from businesses data
-        const totalFunding = businessesData.reduce((sum: number, business: Business) => sum + business.current_funding, 0)
-        const totalInvestors = businessesData.reduce((sum: number, business: Business) => sum + (business.backers || 0), 0)
+        const totalFunding = businessesData.reduce((sum: number, business: Business) => {
+          const funding = parseFloat(business.current_funding?.toString() || '0');
+          return sum + (isNaN(funding) ? 0 : funding);
+        }, 0);
+        const totalInvestors = businessesData.reduce((sum: number, business: Business) => {
+          const backers = parseInt(business.backers?.toString() || '0');
+          return sum + (isNaN(backers) ? 0 : backers);
+        }, 0);
         
         // Fetch recent investments (last 5)
-        const investmentsRes = await fetch('http://localhost:8000/api/investments/recent/', {
+        const investmentsRes = await fetch('http://localhost:8000/api/investments-tracking/recent/', {
           headers: {
             'Authorization': `Bearer ${token}`,
             'Content-Type': 'application/json'
@@ -136,7 +253,10 @@ export default function EntrepreneurDashboard() {
         let totalProfit = 0
         if (logsForProfitRes.ok) {
           const logsData = await logsForProfitRes.json()
-          totalProfit = logsData.reduce((sum: number, log: any) => sum + (log.profit_generated || 0), 0)
+          totalProfit = logsData.reduce((sum: number, log: any) => {
+            const profit = parseFloat(log.profit_generated?.toString() || '0');
+            return sum + (isNaN(profit) ? 0 : profit);
+          }, 0)
         }
 
         setStats({
@@ -147,6 +267,18 @@ export default function EntrepreneurDashboard() {
           recent_investments: recentInvestments,
           recent_logs: recentLogs
         })
+
+        // Fetch entrepreneur metrics
+        const metricsRes = await fetch('http://localhost:8000/api/entrepreneur/metrics/', {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          }
+        })
+        if (metricsRes.ok) {
+          const metricsData = await metricsRes.json()
+          setMetrics(metricsData)
+        }
 
       } catch (e) {
         console.error('Error fetching dashboard data:', e)
@@ -159,27 +291,10 @@ export default function EntrepreneurDashboard() {
     fetchDashboardData()
   }, [])
 
-  const StatCard = ({ title, value, change, icon: Icon, isPositive = true }: any) => (
-    <div className="bg-white p-6 rounded-lg border border-gray-200 shadow-sm">
-      <div className="flex items-center justify-between">
-        <div>
-          <p className="text-sm font-medium text-gray-600">{title}</p>
-          <p className="text-2xl font-bold text-gray-900">{value}</p>
-          {change && (
-            <div className={`flex items-center mt-2 ${isPositive ? "text-green-600" : "text-red-600"}`}>
-              {isPositive ? <ArrowUpRight className="w-4 h-4" /> : <ArrowDownRight className="w-4 h-4" />}
-              <span className="text-sm font-medium ml-1">{change}</span>
-            </div>
-          )}
-        </div>
-        <div className={`p-3 rounded-full ${isPositive ? "bg-green-100" : "bg-gray-100"}`}>
-          <Icon className={`w-6 h-6 ${isPositive ? "text-green-600" : "text-gray-600"}`} />
-        </div>
-      </div>
-    </div>
-  )
-
   const formatCurrency = (amount: number) => {
+    if (isNaN(amount) || amount === null || amount === undefined) {
+      return '$0';
+    }
     return new Intl.NumberFormat("en-US", { 
       style: "currency", 
       currency: "USD", 
@@ -188,19 +303,11 @@ export default function EntrepreneurDashboard() {
     }).format(amount)
   }
 
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric'
-    })
-  }
-
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
-          <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+          <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900"></div>
           <p className="text-gray-500 mt-2">Loading dashboard...</p>
         </div>
       </div>
@@ -220,292 +327,152 @@ export default function EntrepreneurDashboard() {
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
-      <main className="flex-1">
-        {/* Header */}
-        <div className="bg-white border-b border-gray-200">
-          <div className="w-full px-4 sm:px-6 lg:px-8 py-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <h1 className="text-2xl font-bold text-gray-900">Entrepreneur Dashboard</h1>
-                <p className="text-gray-600">Manage your businesses and track your progress.</p>
-              </div>
-              <div className="flex space-x-3">
-                <button 
-                  onClick={() => navigate('/pitch')}
-                  className="bg-black text-white px-4 py-2 rounded-lg hover:bg-gray-800 transition-colors flex items-center"
-                >
-                  <Plus className="w-4 h-4 mr-2" />
-                  Create New Business
-                </button>
+      <div className="flex flex-1">
+        {/* Sidebar */}
+        <Sidebar active="Overview" />
+        {/* Main Content */}
+        <main className="flex-1 flex flex-col lg:flex-row lg:gap-8 p-6 lg:p-8">
+          {/* Center Main Area */}
+          <section className="flex-1">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-10 gap-4">
+              <h1 className="text-4xl font-bold text-gray-900">Dashboard</h1>
+              <div className="flex gap-4">
+                <button onClick={() => navigate('/pitch')} className="bg-gray-900 text-white px-6 py-3 rounded-full font-semibold shadow-[0_4px_20px_rgba(0,0,0,0.3)] hover:bg-gray-800 transition">Create Business</button>
+                <button onClick={() => navigate('/my-businesses')} className="bg-gray-100 text-gray-900 px-6 py-3 rounded-full font-semibold shadow-[0_4px_20px_rgba(0,0,0,0.08)] hover:bg-gray-200 transition">View Businesses</button>
               </div>
             </div>
-          </div>
-        </div>
 
-        {/* Tabs */}
-        <div className="w-full px-4 sm:px-6 lg:px-8 py-6">
-          <div className="border-b border-gray-200 mb-6">
-            <nav className="-mb-px flex space-x-8">
-              {[
-                { id: "overview", name: "Overview", icon: BarChart3 },
-                { id: "businesses", name: "My Businesses", icon: Building },
-                { id: "investors", name: "Investors", icon: Users },
-                { id: "analytics", name: "Analytics", icon: TrendingUp },
-              ].map((tab) => {
-                const Icon = tab.icon
-                return (
-                  <button
-                    key={tab.id}
-                    onClick={() => setActiveTab(tab.id)}
-                    className={`flex items-center py-2 px-1 border-b-2 font-medium text-sm ${
-                      activeTab === tab.id
-                        ? "border-black text-black"
-                        : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
-                    }`}
-                  >
-                    <Icon className="w-4 h-4 mr-2" />
-                    {tab.name}
-                  </button>
-                )
-              })}
-            </nav>
-          </div>
-
-          {/* Overview Tab */}
-          {activeTab === "overview" && (
-            <div className="space-y-6">
-              {/* Summary Stats */}
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                <StatCard
-                  title="Total Businesses"
-                  value={stats?.total_businesses || 0}
-                  icon={Building}
-                />
-                <StatCard
-                  title="Total Funding Raised"
-                  value={formatCurrency(stats?.total_funding_raised || 0)}
-                  icon={DollarSign}
-                />
-                <StatCard 
-                  title="Total Investors" 
-                  value={stats?.total_investors || 0} 
-                  icon={Users} 
-                />
-                <StatCard
-                  title="Total Profit Generated"
-                  value={formatCurrency(stats?.total_profit_generated || 0)}
-                  icon={TrendingUp}
-                />
-              </div>
-
-              {/* Recent Businesses */}
-              {businesses.length > 0 && (
-                <div className="bg-white rounded-lg border border-gray-200 shadow-sm">
-                  <div className="p-6 border-b border-gray-200">
-                    <h3 className="text-lg font-semibold text-gray-900">Recent Businesses</h3>
+            {/* Profile Section */}
+            <div className="bg-white rounded-2xl shadow-[0_8px_30px_rgba(0,0,0,0.08)] p-8 mb-10">
+              <div className="flex items-center gap-6">
+                {profilePicture ? (
+                  <img
+                    src={profilePicture}
+                    alt="Profile"
+                    className="w-20 h-20 rounded-full object-cover border-4 border-gray-200"
+                  />
+                ) : (
+                  <div className="w-20 h-20 bg-gradient-to-br from-gray-700 to-gray-900 rounded-full flex items-center justify-center text-white text-2xl font-bold">
+                    {localStorage.getItem('first_name')?.charAt(0) || localStorage.getItem('username')?.charAt(0) || 'U'}
                   </div>
-                  <div className="divide-y divide-gray-200">
-                    {businesses.slice(0, 3).map((business) => (
-                      <div key={business.id} className="p-6 flex items-center justify-between">
-                        <div className="flex items-center space-x-4">
-                          <div className="w-12 h-12 bg-gray-300 rounded-lg flex items-center justify-center">
-                            <Building className="w-6 h-6 text-gray-600" />
+                )}
+                <div className="flex-1">
+                  <h2 className="text-2xl font-bold text-gray-900">
+                    {localStorage.getItem('first_name')} {localStorage.getItem('last_name') || localStorage.getItem('username')}
+                  </h2>
+                  <p className="text-lg text-gray-600">Entrepreneur</p>
+                  <p className="text-sm text-gray-500 mt-1">Welcome back! Here's your business overview.</p>
+                </div>
+                <div className="text-right">
+                  <div className="text-sm text-gray-500">Member since</div>
+                  <div className="font-semibold text-gray-900">January 2024</div>
+                </div>
+              </div>
+            </div>
+
+            {/* Business Overview Section */}
+            <div className="mb-6">
+              <h2 className="text-2xl font-bold text-gray-900 mb-2">Business Overview</h2>
+              <p className="text-gray-600">Key metrics and performance indicators for your ventures</p>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-10">
+              <div className="bg-white rounded-2xl shadow-[0_8px_30px_rgba(0,0,0,0.08)] p-8 flex flex-col items-center">
+                <div className="text-sm text-gray-500 mb-4">Total Businesses</div>
+                <div className="text-5xl font-bold text-gray-900">{stats?.total_businesses || 0}</div>
+              </div>
+              <div className="bg-white rounded-2xl shadow-[0_8px_30px_rgba(0,0,0,0.08)] p-8 flex flex-col items-center">
+                <div className="text-sm text-gray-500 mb-4">Total Funding Raised</div>
+                <div className="text-5xl font-bold text-gray-900">{formatCurrency(stats?.total_funding_raised || 0)}</div>
+              </div>
+              <div className="bg-white rounded-2xl shadow-[0_8px_30px_rgba(0,0,0,0.08)] p-8 flex flex-col items-center">
+                <div className="text-sm text-gray-500 mb-4">Total Investors</div>
+                <div className="text-5xl font-bold text-gray-900">{stats?.total_investors || 0}</div>
+              </div>
+            </div>
+            
+            {/* New Metrics Cards Row */}
+            {metrics && (
+              <div className="grid grid-cols-1 md:grid-cols-5 gap-6 mb-10">
+                <div className="bg-white rounded-2xl shadow-[0_8px_30px_rgba(0,0,0,0.08)] p-6 flex flex-col items-center">
+                  <div className="text-sm text-gray-500 mb-2">Profit Generated</div>
+                  <div className="text-3xl font-bold text-gray-900">{formatCurrency(metrics.total_profit_generated)}</div>
+                </div>
+                <div className="bg-white rounded-2xl shadow-[0_8px_30px_rgba(0,0,0,0.08)] p-6 flex flex-col items-center">
+                  <div className="text-sm text-gray-500 mb-2">Avg. Investment Size</div>
+                  <div className="text-3xl font-bold text-gray-900">{formatCurrency(metrics.average_investment_size)}</div>
+                </div>
+                <div className="bg-white rounded-2xl shadow-[0_8px_30px_rgba(0,0,0,0.08)] p-6 flex flex-col items-center">
+                  <div className="text-sm text-gray-500 mb-2">Success Rate</div>
+                  <div className="text-3xl font-bold text-gray-900">{metrics.success_rate}%</div>
+                </div>
+                <div className="bg-white rounded-2xl shadow-[0_8px_30px_rgba(0,0,0,0.08)] p-6 flex flex-col items-center">
+                  <div className="text-sm text-gray-500 mb-2">Annual Revenue</div>
+                  <div className="text-3xl font-bold text-gray-900">{formatCurrency(metrics.annual_revenue)}</div>
+                </div>
+                <div className="bg-white rounded-2xl shadow-[0_8px_30px_rgba(0,0,0,0.08)] p-6 flex flex-col items-center">
+                  <div className="text-sm text-gray-500 mb-2">Total Assets</div>
+                  <div className="text-3xl font-bold text-gray-900">{formatCurrency(metrics.total_assets)}</div>
+                </div>
+              </div>
+            )}
+
+            {/* New 3 Cards Row */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-10">
+              <div className="bg-white rounded-2xl shadow-[0_8px_30px_rgba(0,0,0,0.08)] p-8 flex flex-col items-center">
+                <div className="text-sm text-gray-500 mb-4">Total Earning</div>
+                <div className="text-5xl font-bold text-gray-900">{formatCurrency(stats?.total_profit_generated || 0)}</div>
+              </div>
+              <div className="bg-white rounded-2xl shadow-[0_8px_30px_rgba(0,0,0,0.08)] p-8 flex flex-col items-center">
+                <div className="text-sm text-gray-500 mb-4">Earning Last Month</div>
+                <div className="text-5xl font-bold text-gray-900">{formatCurrency((stats?.total_profit_generated || 0) / 12)}</div>
+              </div>
+              <div className="bg-white rounded-2xl shadow-[0_8px_30px_rgba(0,0,0,0.08)] p-8 flex flex-col items-center">
+                <div className="text-sm text-gray-500 mb-4">Logs</div>
+                <div className="text-5xl font-bold text-gray-900">{stats?.recent_logs?.length || 0}</div>
+              </div>
+            </div>
+
+            <div>
+              <div className="font-semibold text-xl mb-4">Active Businesses</div>
+              <div className="bg-white rounded-2xl shadow-[0_8px_30px_rgba(0,0,0,0.08)] p-0 overflow-x-auto">
+                <table className="min-w-full">
+                  <thead>
+                    <tr className="text-left text-sm text-gray-500">
+                      <th className="px-8 py-4">Business</th>
+                      <th className="px-8 py-4">Funding Goal</th>
+                      <th className="px-8 py-4">Raised</th>
+                      <th className="px-8 py-4">Investors</th>
+                    </tr>
+                  </thead>
+                  <tbody className="text-base">
+                    {businesses.slice(0, 2).map((item) => (
+                      <tr key={item.id} className="border-t">
+                        <td className="px-8 py-6 font-medium text-gray-900">{item.title}</td>
+                        <td className="px-8 py-6 text-gray-900 font-semibold">{formatCurrency(item.funding_goal)}</td>
+                        <td className="px-8 py-6">
+                          <div className="flex items-center gap-3">
+                            <div className="w-40 h-3 bg-gray-200 rounded-full overflow-hidden">
+                              <div className="h-3 rounded-full bg-gray-900" style={{ width: `${Math.round((parseFloat(item.current_funding?.toString() || '0') / parseFloat(item.funding_goal?.toString() || '1')) * 100)}%` }}></div>
+                            </div>
+                            <span className="text-gray-700 font-semibold">{Math.round((parseFloat(item.current_funding?.toString() || '0') / parseFloat(item.funding_goal?.toString() || '1')) * 100)}</span>
                           </div>
-                          <div>
-                            <p className="font-medium text-gray-900">{business.title}</p>
-                            <p className="text-sm text-gray-500">{business.category} • {business.location}</p>
-                          </div>
-                        </div>
-                        <div className="text-right">
-                          <p className="font-semibold text-gray-900">{formatCurrency(business.current_funding)}</p>
-                          <p className="text-sm text-gray-500">{business.backers || 0} investors</p>
-                        </div>
-                      </div>
+                        </td>
+                        <td className="px-8 py-6 text-gray-700">{item.backers}</td>
+                      </tr>
                     ))}
-                  </div>
-                  <div className="p-6 border-t border-gray-200">
-                    <button 
-                      onClick={() => navigate('/my-businesses')}
-                      className="w-full text-center text-sm text-gray-600 hover:text-gray-900"
-                    >
-                      View All Businesses
-                    </button>
-                  </div>
-                </div>
-              )}
-
-              {/* Recent Investors */}
-              {stats?.recent_investments && stats.recent_investments.length > 0 && (
-                <div className="bg-white rounded-lg border border-gray-200 shadow-sm">
-                  <div className="p-6 border-b border-gray-200">
-                    <h3 className="text-lg font-semibold text-gray-900">Recent Investors</h3>
-                  </div>
-                  <div className="divide-y divide-gray-200">
-                    {stats.recent_investments.map((investment) => (
-                      <div key={investment.id} className="p-6 flex items-center justify-between">
-                        <div className="flex items-center space-x-4">
-                          <div className="w-10 h-10 bg-gray-300 rounded-full flex items-center justify-center">
-                            <Users className="w-5 h-5 text-gray-600" />
-                          </div>
-                          <div>
-                            <p className="font-medium text-gray-900">{investment.user_full_name || investment.user_name}</p>
-                            <p className="text-sm text-gray-500">{formatDate(investment.invested_at)}</p>
-                          </div>
-                        </div>
-                        <div className="text-right">
-                          <p className="font-semibold text-gray-900">{formatCurrency(investment.amount)}</p>
-                          <p className="text-sm text-gray-500">{investment.business_title}</p>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {/* Recent Logs */}
-              {stats?.recent_logs && stats.recent_logs.length > 0 && (
-                <div className="bg-white rounded-lg border border-gray-200 shadow-sm">
-                  <div className="p-6 border-b border-gray-200">
-                    <h3 className="text-lg font-semibold text-gray-900">Recent Updates</h3>
-                  </div>
-                  <div className="divide-y divide-gray-200">
-                    {stats.recent_logs.map((log) => (
-                      <div key={log.id} className="p-6">
-                        <div className="flex items-start space-x-3">
-                          <div className="p-2 rounded-full bg-blue-100">
-                            <FileText className="w-4 h-4 text-blue-600" />
-                          </div>
-                          <div className="flex-1">
-                            <h4 className="font-medium text-gray-900">{log.title}</h4>
-                            <p className="text-gray-600 mt-1 line-clamp-2">{log.content}</p>
-                            <p className="text-sm text-gray-500 mt-2">{formatDate(log.created_at)} • {log.business_title}</p>
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {/* Empty State */}
-              {businesses.length === 0 && (
-                <div className="text-center py-16 bg-gray-50 rounded-xl border-2 border-dashed border-gray-300">
-                  <Building className="w-16 h-16 mx-auto text-gray-400 mb-4" />
-                  <h3 className="text-xl font-semibold text-gray-700 mb-2">No businesses yet</h3>
-                  <p className="text-gray-500 mb-6">Start your entrepreneurial journey by creating your first business.</p>
-                  <button
-                    onClick={() => navigate('/pitch')}
-                    className="inline-flex items-center gap-2 bg-blue-600 text-white font-semibold px-6 py-3 rounded-lg hover:bg-blue-700 transition-colors"
-                  >
-                    <Plus size={20} />
-                    Create First Business
-                  </button>
-                </div>
-              )}
-            </div>
-          )}
-
-          {/* Businesses Tab */}
-          {activeTab === "businesses" && (
-            <div className="space-y-6">
-              {businesses.length > 0 ? (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                  {businesses.map((business) => (
-                    <div key={business.id} className="bg-white rounded-lg border border-gray-200 shadow-sm overflow-hidden">
-                      <div className="h-48 bg-gray-100">
-                        <img 
-                          src={business.image || '/placeholder.svg'} 
-                          alt={business.title} 
-                          className="w-full h-full object-cover"
-                        />
-                      </div>
-                      <div className="p-6">
-                        <h3 className="text-lg font-semibold text-gray-900 mb-2">{business.title}</h3>
-                        <p className="text-sm text-gray-500 mb-4">{business.category} • {business.location}</p>
-                        
-                        <div className="space-y-2 mb-4">
-                          <div className="flex justify-between text-sm">
-                            <span className="text-gray-600">Raised</span>
-                            <span className="font-semibold">{formatCurrency(business.current_funding)}</span>
-                          </div>
-                          <div className="w-full bg-gray-200 rounded-full h-2">
-                            <div 
-                              className="bg-blue-600 h-2 rounded-full" 
-                              style={{ width: `${Math.min((business.current_funding / business.funding_goal) * 100, 100)}%` }}
-                            ></div>
-                          </div>
-                          <div className="flex justify-between text-xs text-gray-500">
-                            <span>{Math.round((business.current_funding / business.funding_goal) * 100)}%</span>
-                            <span>Goal: {formatCurrency(business.funding_goal)}</span>
-                          </div>
-                        </div>
-
-                        <div className="flex justify-between items-center">
-                          <div>
-                            <p className="font-bold text-lg text-gray-900">{business.backers || 0}</p>
-                            <p className="text-xs text-gray-500">Investors</p>
-                          </div>
-                          <div className="flex space-x-2">
-                            <button 
-                              onClick={() => navigate(`/businesses/${business.id}/logs`)}
-                              className="p-2 rounded-full text-gray-500 hover:bg-blue-100 hover:text-blue-600 transition-colors"
-                              title="View Logs"
-                            >
-                              <FileText size={16} />
-                            </button>
-                            <button 
-                              onClick={() => navigate(`/edit-business/${business.id}`)}
-                              className="p-2 rounded-full text-gray-500 hover:bg-gray-100 hover:text-gray-900 transition-colors"
-                              title="Edit Business"
-                            >
-                              <Edit size={16} />
-                            </button>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <div className="text-center py-16 bg-gray-50 rounded-xl border-2 border-dashed border-gray-300">
-                  <Building className="w-16 h-16 mx-auto text-gray-400 mb-4" />
-                  <h3 className="text-xl font-semibold text-gray-700 mb-2">No businesses yet</h3>
-                  <p className="text-gray-500 mb-6">Create your first business to get started.</p>
-                  <button
-                    onClick={() => navigate('/pitch')}
-                    className="inline-flex items-center gap-2 bg-blue-600 text-white font-semibold px-6 py-3 rounded-lg hover:bg-blue-700 transition-colors"
-                  >
-                    <Plus size={20} />
-                    Create Business
-                  </button>
-                </div>
-              )}
-            </div>
-          )}
-
-          {/* Investors Tab */}
-          {activeTab === "investors" && (
-            <div className="bg-white rounded-lg border border-gray-200 shadow-sm p-6">
-              <div className="flex justify-between items-center mb-4">
-                <h3 className="text-lg font-semibold text-gray-900">Investor Management</h3>
-                <button className="flex items-center px-4 py-2 border border-gray-300 rounded-md hover:bg-gray-50">
-                  <Download className="w-4 h-4 mr-2" />
-                  Export List
-                </button>
+                  </tbody>
+                </table>
               </div>
-              <p className="text-gray-600">View and manage all investors across your businesses.</p>
             </div>
-          )}
-
-          {/* Analytics Tab */}
-          {activeTab === "analytics" && (
-            <div className="bg-white rounded-lg border border-gray-200 shadow-sm p-6">
-              <h3 className="text-lg font-semibold text-gray-900 mb-4">Business Analytics</h3>
-              <p className="text-gray-600">Detailed analytics about your business performance and investor behavior.</p>
-            </div>
-          )}
-        </div>
-      </main>
+          </section>
+          {/* Right Pane */}
+          <aside className="w-full lg:w-96 flex-shrink-0 px-6 py-8">
+            <CalendarWidget />
+          </aside>
+        </main>
+      </div>
     </div>
   )
 }
+

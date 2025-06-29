@@ -1,6 +1,6 @@
 # investments/serializers.py
 from rest_framework import serializers
-from .models import Business, BusinessImage, BusinessVideo, BusinessDocument
+from .models import Business, BusinessImage, BusinessVideo, BusinessDocument, CalendarEvent
 
 # --- Serializers for creating/uploading related files ---
 class BusinessImageCreateSerializer(serializers.ModelSerializer):
@@ -38,7 +38,7 @@ class BusinessPitchSerializer(serializers.ModelSerializer):
         fields = [
             'title', 'tagline', 'description', 'category', 'location',
             'funding_goal', 'min_investment',
-            'team_size', 'website', 'social_media','entrepreneur_name',
+            'team_size', 'website', 'social_media', 'entrepreneur_name',
             'business_plan', 'financial_projections', 'market_analysis',
             'competitive_advantage', 'use_of_funds',
             'founding_year', 'industry_experience', 'key_achievements',
@@ -50,16 +50,21 @@ class BusinessPitchSerializer(serializers.ModelSerializer):
 
     # Override create method to handle nested writes for images, videos, and documents
     def create(self, validated_data):
-        images_data = self.context.get('view').request.FILES.getlist('images')
-        videos_data = self.context.get('view').request.FILES.getlist('videos')
-        documents_data = self.context.get('view').request.FILES.getlist('documents')
+        # Extract file data from request
+        request = self.context.get('request')
+        images_data = request.FILES.getlist('images') if request else []
+        videos_data = request.FILES.getlist('videos') if request else []
+        documents_data = request.FILES.getlist('documents') if request else []
 
+        # Remove nested fields from validated_data
         validated_data.pop('images', None)
         validated_data.pop('videos', None)
         validated_data.pop('documents', None)
 
+        # Create the business
         business = Business.objects.create(**validated_data)
 
+        # Create related files
         for image_data in images_data:
             BusinessImage.objects.create(business=business, image=image_data)
         for video_data in videos_data:
@@ -220,3 +225,16 @@ class InvestmentSerializer(serializers.Serializer):
             'backers': business.backers,
             'funding_goal': business.funding_goal # Also send goal for progress bar
         }
+
+class CalendarEventSerializer(serializers.ModelSerializer):
+    business_title = serializers.CharField(source='business.title', read_only=True)
+    event_type_display = serializers.CharField(source='get_event_type_display', read_only=True)
+    
+    class Meta:
+        model = CalendarEvent
+        fields = [
+            'id', 'business', 'business_title', 'title', 'description', 
+            'event_type', 'event_type_display', 'date', 'time', 
+            'duration_minutes', 'location', 'is_completed', 'created_at'
+        ]
+        read_only_fields = ['created_at']

@@ -61,4 +61,31 @@ class BusinessDocument(models.Model):
     business = models.ForeignKey(Business, related_name='documents', on_delete=models.CASCADE)
     name = models.CharField(max_length=255)
     document_file = models.FileField(upload_to='business_documents/',blank=True, null=True ) # Changed to FileField
-    size = models.CharField(max_length=50, blank=True, null=True) 
+    size = models.CharField(max_length=50, blank=True, null=True)
+
+class CalendarEvent(models.Model):
+    EVENT_TYPES = [
+        ('meeting', 'Meeting'),
+        ('deadline', 'Deadline'),
+        ('pitch', 'Pitch'),
+        ('milestone', 'Milestone'),
+        ('other', 'Other'),
+    ]
+    
+    business = models.ForeignKey(Business, on_delete=models.CASCADE, related_name='calendar_events')
+    title = models.CharField(max_length=200)
+    description = models.TextField(blank=True)
+    event_type = models.CharField(max_length=20, choices=EVENT_TYPES, default='other')
+    date = models.DateField()
+    time = models.TimeField(null=True, blank=True)
+    duration_minutes = models.IntegerField(default=60)
+    location = models.CharField(max_length=200, blank=True)
+    is_completed = models.BooleanField(default=False)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    
+    class Meta:
+        ordering = ['date', 'time']
+    
+    def __str__(self):
+        return f"{self.title} - {self.date}" 

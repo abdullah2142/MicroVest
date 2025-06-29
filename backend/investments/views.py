@@ -5,16 +5,23 @@ from rest_framework import status
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from django.db.models import Q
 from django.db import transaction
-from .models import Business
+from .models import Business, CalendarEvent
 from .serializers import (
     BusinessListSerializer,
     BusinessDetailSerializer,
     BusinessPitchSerializer,
-    InvestmentSerializer# Import the new serializer
+    InvestmentSerializer,
+    BusinessImageSerializer,
+    BusinessVideoSerializer,
+    BusinessDocumentSerializer,
+    CalendarEventSerializer
 )
 from .permissions import IsOwnerOrReadOnly, IsOwner, IsAuthenticatedOrReadOnly
 from django.db.models import F
 from investments_tracking.models import Investment
+from django.utils.dateparse import parse_date
+from datetime import datetime
+from rest_framework.decorators import api_view, permission_classes
 
 class InvestAPIView(generics.GenericAPIView):
     serializer_class = InvestmentSerializer
@@ -135,3 +142,57 @@ class UserBusinessListView(generics.ListAPIView):
 
     def get_serializer_context(self):
         return {'request': self.request}
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def calendar_events(request):
+    """Get calendar events for the current month for user's businesses"""
+    try:
+        # Get current month and year
+        today = datetime.now()
+        year = request.GET.get('year', today.year)
+        month = request.GET.get('month', today.month)
+        
+        # Get user's businesses
+        user_businesses = Business.objects.filter(user=request.user)
+        
+        # Get events for the specified month
+        events = CalendarEvent.objects.filter(
+            business__in=user_businesses,
+            date__year=year,
+            date__month=month
+        ).select_related('business')
+        
+        serializer = CalendarEventSerializer(events, many=True)
+        return Response(serializer.data)
+        
+    except Exception as e:
+        return Response(
+            {'error': str(e)}, 
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR
+        )
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def create_calendar_event(request):
+    """Create a new calendar event"""
+    try:
+        serializer = CalendarEventSerializer(data=request.data)
+        if serializer.is_valid():
+            # Verify the business belongs to the user
+            business_id = request.data.get('business')
+            if not Business.objects.filter(id=business_id, user=request.user).exists():
+                return Response(
+                    {'error': 'Business not found or access denied'}, 
+                    status=status.HTTP_403_FORBIDDEN
+                )
+            
+            serializer.save()
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        
+    except Exception as e:
+        return Response(
+            {'error': str(e)}, 
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR
+        )

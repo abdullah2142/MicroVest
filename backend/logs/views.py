@@ -29,18 +29,44 @@ def log_list(request):
         return Response(serializer.data)
     
     elif request.method == 'POST':
-        serializer = LogSerializer(data=request.data)
-        if serializer.is_valid():
-            # Check if the user owns the business
-            business = get_object_or_404(Business, id=serializer.validated_data['business'].id)
-            if business.user != request.user:
-                return Response(
-                    {'error': 'You can only create logs for your own businesses'}, 
-                    status=status.HTTP_403_FORBIDDEN
-                )
-            serializer.save()
-            return Response(serializer.data, status=status.HTTP_201_CREATED)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        try:
+            print("Received log creation request")
+            print("Request data:", request.data)
+            print("Request user:", request.user)
+            
+            serializer = LogSerializer(data=request.data)
+            if serializer.is_valid():
+                print("Serializer is valid")
+                # Check if the user owns the business
+                business_id = serializer.validated_data['business']
+                if isinstance(business_id, int):
+                    business = get_object_or_404(Business, id=business_id)
+                else:
+                    business = business_id
+                print("Business found:", business.title)
+                print("Business user:", business.user)
+                print("Request user:", request.user)
+                
+                if business.user != request.user:
+                    print("User does not own the business")
+                    return Response(
+                        {'error': 'You can only create logs for your own businesses'}, 
+                        status=status.HTTP_403_FORBIDDEN
+                    )
+                print("User owns the business, saving log")
+                serializer.save()
+                return Response(serializer.data, status=status.HTTP_201_CREATED)
+            else:
+                print("Serializer errors:", serializer.errors)
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        except Exception as e:
+            print(f"Error in log creation: {str(e)}")
+            import traceback
+            traceback.print_exc()
+            return Response(
+                {'error': f'Server error: {str(e)}'}, 
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
 
 @api_view(['GET', 'PUT', 'DELETE'])
 @permission_classes([IsAuthenticated])

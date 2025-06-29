@@ -80,7 +80,7 @@ export default function FundStatisticsPage() {
       setLoading(true);
       setError(null);
       try {
-        const response = await fetch(`http://localhost:8000/api/investments/business/${businessId}/stats/`, {
+        const response = await fetch(`http://localhost:8000/api/investments-tracking/business/${businessId}/stats/`, {
           headers: {
             'Authorization': `Bearer ${user.authToken}`,
           },

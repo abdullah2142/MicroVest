@@ -1,4 +1,5 @@
 from rest_framework import serializers
+from decimal import Decimal
 from .models import Log, ProfitDistribution
 
 class ProfitDistributionSerializer(serializers.ModelSerializer):
@@ -27,6 +28,15 @@ class LogSerializer(serializers.ModelSerializer):
     formatted_profit_retained = serializers.CharField(read_only=True)
     profit_distributions = ProfitDistributionSerializer(many=True, read_only=True)
     
+    def validate_profit_generated(self, value):
+        """Ensure profit_generated is properly converted to Decimal"""
+        if value is not None and value != '':
+            try:
+                return Decimal(str(value))
+            except (ValueError, TypeError):
+                return Decimal('0.00')
+        return Decimal('0.00')
+    
     class Meta:
         model = Log
         fields = [
@@ -37,7 +47,7 @@ class LogSerializer(serializers.ModelSerializer):
             'formatted_profit_retained', 'profit_distribution_date', 'profit_notes',
             'profit_distributions', 'created_at', 'updated_at'
         ]
-        read_only_fields = ['created_at', 'updated_at', 'profit_retained']
+        read_only_fields = ['created_at', 'updated_at']
 
 class LogListSerializer(serializers.ModelSerializer):
     business_title = serializers.CharField(source='business.title', read_only=True)

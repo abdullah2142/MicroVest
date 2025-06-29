@@ -10,6 +10,7 @@ interface UserState {
   email: string | null;
   first_name: string | null;
   last_name: string | null;
+  prof_pic?: string | null;
   loading: boolean; // Add loading state
 }
 
@@ -37,6 +38,7 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
     email: null,
     first_name: null,
     last_name: null,
+    prof_pic: null,
     loading: true, // Start in a loading state
   });
 
@@ -48,6 +50,7 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
     const storedEmail = localStorage.getItem('email');
     const storedFirstName = localStorage.getItem('first_name');
     const storedLastName = localStorage.getItem('last_name');
+    const storedProfPic = localStorage.getItem('prof_pic');
 
     if (storedAuthToken && storedUserType && storedUsername) {
       setUser({
@@ -58,6 +61,7 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
         email: storedEmail,
         first_name: storedFirstName,
         last_name: storedLastName,
+        prof_pic: storedProfPic,
         loading: false, // Finished loading
       });
     } else {
@@ -74,6 +78,7 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
     localStorage.setItem('first_name', data.first_name || '');
     localStorage.setItem('last_name', data.last_name || '');
     localStorage.setItem('userId', data.user_id);
+    // Note: Profile picture will be fetched separately from the backend
 
     setUser({
       isAuthenticated: true,
@@ -83,6 +88,7 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
       email: data.email,
       first_name: data.first_name,
       last_name: data.last_name,
+      prof_pic: null, // Will be fetched from backend
       loading: false,
     });
   };
@@ -91,7 +97,7 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
   const logout = () => {
     // Clear all relevant items from localStorage
     Object.keys(localStorage).forEach(key => {
-        if (['authToken', 'userType', 'username', 'email', 'first_name', 'last_name', 'userId', 'refreshToken'].includes(key)) {
+        if (['authToken', 'userType', 'username', 'email', 'first_name', 'last_name', 'userId', 'refreshToken', 'prof_pic'].includes(key)) {
             localStorage.removeItem(key);
         }
     });
@@ -104,6 +110,7 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
       email: null,
       first_name: null,
       last_name: null,
+      prof_pic: null,
       loading: false,
     });
   };

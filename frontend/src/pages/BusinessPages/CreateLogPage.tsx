@@ -80,7 +80,7 @@ export default function CreateLogPage() {
       const submitData = {
         ...formData,
         business: parseInt(id!),
-        profit_generated: formData.profit_generated ? parseFloat(formData.profit_generated) : null
+        profit_generated: formData.profit_generated ? formData.profit_generated : null
       };
 
       const res = await fetch('http://localhost:8000/api/logs/', {
@@ -93,8 +93,23 @@ export default function CreateLogPage() {
       });
 
       if (!res.ok) {
-        const errorData = await res.json();
-        throw new Error(errorData.error || errorData.detail || 'Failed to create log');
+        let errorMessage = 'Failed to create log';
+        try {
+          const contentType = res.headers.get('content-type');
+          if (contentType && contentType.includes('application/json')) {
+            const errorData = await res.json();
+            errorMessage = errorData.error || errorData.detail || errorMessage;
+          } else {
+            // Handle non-JSON responses (like HTML error pages)
+            const textResponse = await res.text();
+            console.error('Non-JSON response:', textResponse);
+            errorMessage = `Server error (${res.status}): ${res.statusText}`;
+          }
+        } catch (parseError) {
+          console.error('Error parsing response:', parseError);
+          errorMessage = `Server error (${res.status}): ${res.statusText}`;
+        }
+        throw new Error(errorMessage);
       }
 
       // Navigate back to logs page
@@ -112,15 +127,15 @@ export default function CreateLogPage() {
   };
 
   return (
-    <div className="max-w-4xl mx-auto py-8 px-4">
+    <div className="w-full max-w-[1920px] mx-auto py-8 px-8">
       {/* Header */}
       <div className="flex items-center gap-4 mb-8">
         <button
-          onClick={() => navigate(`/businesses/${id}/logs`)}
+          onClick={() => navigate('/documentation')}
           className="flex items-center gap-2 text-gray-600 hover:text-gray-800 transition-colors"
         >
           <ArrowLeft size={20} />
-          Back to Logs
+          Back to Documentation
         </button>
         <div className="h-6 w-px bg-gray-300"></div>
         <div>
@@ -327,7 +342,7 @@ export default function CreateLogPage() {
         <div className="flex justify-end gap-4">
           <button
             type="button"
-            onClick={() => navigate(`/businesses/${id}/logs`)}
+            onClick={() => navigate('/documentation')}
             className="px-6 py-3 border border-gray-300 text-gray-700 font-semibold rounded-lg hover:bg-gray-50 transition-colors"
           >
             Cancel

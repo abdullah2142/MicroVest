@@ -67,7 +67,7 @@ export default function BusinessLogsPage() {
   };
 
   return (
-    <div className="max-w-3xl mx-auto py-10 px-4">
+    <div className="w-full max-w-[1920px] mx-auto py-10 px-8">
       <div className="flex items-center justify-between mb-8">
         <div>
           <h1 className="text-3xl font-bold text-gray-900 mb-1">Business Logs</h1>

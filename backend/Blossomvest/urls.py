@@ -25,7 +25,7 @@ urlpatterns = [
     path('api/', include('investments.urls')),
     path('api/messaging/', include('messaging.urls')),
     path('api/logs/', include('logs.urls')),
-    path('api/investments/', include('investments_tracking.urls')),
+    path('api/investments-tracking/', include('investments_tracking.urls')),
     path('api/notifications/', include('notifications.urls')), # Add this line
 ]
 

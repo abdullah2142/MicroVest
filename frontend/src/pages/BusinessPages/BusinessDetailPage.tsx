@@ -24,7 +24,8 @@ import {
   Building2,
   Award,
   ChartBar,
-  LogIn
+  LogIn,
+  Bot
 } from "lucide-react";
 import Footer from "../../components/footer";
 import { useUser } from "../../context/UserContext";
@@ -562,6 +563,10 @@ export default function BusinessDetailPage() {
                   <button className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors">
                     <Share2 className="h-4 w-4" />
                     Share
+                  </button>
+                  <button className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
+                    <Bot className="h-4 w-4" />
+                    Talk with AI
                   </button>
                   {businessData.website && (
                     <a 
