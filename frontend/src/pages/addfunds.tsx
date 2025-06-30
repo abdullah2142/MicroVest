@@ -139,20 +139,27 @@ export default function AddFundsModal({ isOpen, onClose, onFundsAdded }: AddFund
       }}
     >
       <div 
-        className="bg-white rounded-2xl shadow-xl max-w-md w-full max-h-[90vh] overflow-y-auto"
+        className="bg-white rounded-2xl shadow-xl max-w-md w-full max-h-[90vh] overflow-y-auto relative" // Added relative for absolute child
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="p-6">
+        {/* Animated Grid Background Placeholder */}
+        <div className="absolute inset-0 z-0 overflow-hidden rounded-2xl">
+          {/* Replace '/path/to/your/grid_animation.gif' with the actual path to your GIF */}
+          {/* Ensure your GIF is subtle and has a grid-like pattern for the best effect */}
+          <img src="/path/to/your/grid_animation.gif" alt="Animated Grid" className="w-full h-full object-cover opacity-10" />
+        </div>
+
+        <div className="p-6 relative z-10"> {/* Added relative z-10 to keep content above background */}
           <div className="flex items-center justify-between mb-6">
-            <h2 className="text-2xl font-bold text-gray-900 flex items-center gap-3">
-              <DollarSign className="w-6 h-6 text-green-600" />
+            <h2 className="text-2xl font-bold text-[#2A363B] flex items-center gap-3"> {/* Text color updated */}
+              <DollarSign className="w-6 h-6 text-[#CF4647]" /> {/* Icon color updated */}
               Add Funds
             </h2>
             <button 
               onClick={onClose}
               className="p-2 hover:bg-gray-100 rounded-full transition-colors"
             >
-              <X className="w-5 h-5 text-gray-500" />
+              <X className="w-5 h-5 text-[#CF4647]" /> {/* Icon color updated */}
             </button>
           </div>
 
@@ -170,7 +177,7 @@ export default function AddFundsModal({ isOpen, onClose, onFundsAdded }: AddFund
                   type="number"
                   name="amount"
                   id="amount"
-                  className="block w-full pl-7 pr-12 sm:text-sm border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500 py-3"
+                  className="block w-full pl-7 pr-12 sm:text-sm border-gray-300 rounded-md focus:ring-[#CF4647] focus:border-[#CF4647] py-3" // Focus colors updated
                   placeholder="0.00"
                   value={amount}
                   onChange={(e) => setAmount(e.target.value)}
@@ -197,27 +204,27 @@ export default function AddFundsModal({ isOpen, onClose, onFundsAdded }: AddFund
                     onClick={() => setSelectedPaymentMethod(method.id)}
                     className={`w-full p-4 border-2 rounded-lg flex items-center gap-3 transition-colors ${
                       selectedPaymentMethod === method.id
-                        ? 'border-blue-500 bg-blue-50'
+                        ? 'border-[#CF4647] bg-[#F8F6F6]' // Selected state colors updated
                         : 'border-gray-200 hover:border-gray-300'
                     }`}
                   >
                     <method.icon className={`w-6 h-6 ${
-                      selectedPaymentMethod === method.id ? 'text-blue-600' : 'text-gray-500'
+                      selectedPaymentMethod === method.id ? 'text-[#CF4647]' : 'text-gray-500' // Icon color updated
                     }`} />
                     <div className="text-left">
                       <div className={`font-medium ${
-                        selectedPaymentMethod === method.id ? 'text-blue-900' : 'text-gray-900'
+                        selectedPaymentMethod === method.id ? 'text-[#2A363B]' : 'text-gray-900' // Text color updated
                       }`}>
                         {method.name}
                       </div>
                       <div className={`text-sm ${
-                        selectedPaymentMethod === method.id ? 'text-blue-700' : 'text-gray-500'
+                        selectedPaymentMethod === method.id ? 'text-[#2A363B]' : 'text-gray-500' // Text color updated
                       }`}>
                         {method.description}
                       </div>
                     </div>
                     {selectedPaymentMethod === method.id && (
-                      <CheckCircle className="w-5 h-5 text-blue-600 ml-auto" />
+                      <CheckCircle className="w-5 h-5 text-[#CF4647] ml-auto" /> // Check icon color updated
                     )}
                   </button>
                 ))}
@@ -228,10 +235,10 @@ export default function AddFundsModal({ isOpen, onClose, onFundsAdded }: AddFund
             {message && (
               <div 
                 className={`flex items-center gap-2 p-3 rounded-md ${
-                  message.type === 'success' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+                  message.type === 'success' ? 'bg-[#F8F6F6] text-[#2A363B]' : 'bg-[#F8F6F6] text-[#2A363B]' // Message background/text colors updated
                 }`}
               >
-                {message.type === 'success' ? <CheckCircle className="w-5 h-5" /> : <XCircle className="w-5 h-5" />}
+                {message.type === 'success' ? <CheckCircle className="w-5 h-5 text-[#CF4647]" /> : <XCircle className="w-5 h-5 text-[#F5D061]" />} {/* Icon colors updated */}
                 <p className="text-sm font-medium">{message.text}</p>
               </div>
             )}
@@ -241,13 +248,13 @@ export default function AddFundsModal({ isOpen, onClose, onFundsAdded }: AddFund
               <button
                 type="button"
                 onClick={onClose}
-                className="flex-1 py-3 px-4 border border-gray-300 rounded-md text-gray-700 font-medium hover:bg-gray-50 transition-colors"
+                className="flex-1 py-3 px-4 border border-gray-300 rounded-md text-[#2A363B] font-medium hover:bg-[#F8F6F6] transition-colors" // Button colors updated
               >
                 Cancel
               </button>
               <button
                 type="submit"
-                className="flex-1 py-3 px-4 bg-blue-600 text-white font-medium rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors"
+                className="flex-1 py-3 px-4 bg-[#2A363B] text-white font-medium rounded-md hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#CF4647] transition-colors" // Button colors updated
                 disabled={loading || !selectedPaymentMethod}
               >
                 {loading ? "Adding Funds..." : "Add Funds"}

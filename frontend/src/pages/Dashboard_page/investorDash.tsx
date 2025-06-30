@@ -3,29 +3,14 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import {
-  Home,
-  DollarSign,
-  Eye,
-  Settings,
-  TrendingUp,
-  Users,
-  Building,
-  BarChart3,
-  Plus,
-  Wallet,
-  Target,
-  ArrowUpRight,
-  Briefcase,
-  User,
-  LogOut,
+  ArrowRight,
   Landmark,
   Coins,
   Banknote,
-  Bookmark,
   BookOpen,
-  ArrowRight
 } from "lucide-react"
 import { useUser } from "../../context/UserContext";
+import Sidebar from "../../components/Sidebar"; // Import the new Sidebar component
 
 // Interface for individual recent investment
 interface RecentInvestment {
@@ -75,7 +60,7 @@ const BlogCard: React.FC<{ blog: BlogPost }> = ({ blog }) => {
     <div className="bg-white rounded-xl shadow-[0_4px_15px_rgba(0,0,0,0.05)] overflow-hidden">
       <img src={blog.imageUrl} alt={blog.title} className="w-full h-36 object-cover" />
       <div className="p-4">
-        <h4 className="font-semibold text-[#2A363B] mb-2 leading-tight">{blog.title}</h4> {/* Text color updated */}
+        <h4 className="font-semibold text-[#2A363B] mb-2 leading-tight">{blog.title}</h4>
         <p className="text-gray-600 mb-3 line-clamp-2">{blog.excerpt}</p>
         <div className="flex items-center justify-between text-xs text-gray-500">
           <span>{blog.date}</span>
@@ -83,7 +68,7 @@ const BlogCard: React.FC<{ blog: BlogPost }> = ({ blog }) => {
             href={blog.link}
             target="_blank"
             rel="noopener noreferrer"
-            className="text-[#CF4647] hover:text-[#2A363B] font-medium inline-flex items-center" // Link color updated
+            className="text-[#CF4647] hover:text-[#2A363B] font-medium inline-flex items-center"
           >
             Read More <ArrowRight className="w-3 h-3 ml-1" />
           </a>
@@ -96,68 +81,14 @@ const BlogCard: React.FC<{ blog: BlogPost }> = ({ blog }) => {
 // Helper function for category colors (now using the palette's accent and primary dark colors)
 const getCategoryColor = (category: string) => {
   switch (category) {
-    case 'Technology': return '#CF4647'; // Red
-    case 'Healthcare': return '#F5D061'; // Gold
-    case 'Finance': return '#2A363B';    // Dark Grey
-    case 'Agriculture': return '#CF4647'; // Reusing Red for another category
-    default: return '#2A363B'; // Default to Dark Grey
+    case 'Technology': return '#CF4647';
+    case 'Healthcare': return '#F5D061';
+    case 'Finance': return '#2A363B';
+    case 'Agriculture': return '#CF4647';
+    default: return '#2A363B';
   }
 };
 
-
-function Sidebar({ active = "Overview", onAddFundsClick, savedBusinesses }: { active?: string; onAddFundsClick: () => void, savedBusinesses: { id: number, title: string }[] }) {
-  const navigate = useNavigate();
-
-  const nav = [
-    { label: "Overview", icon: Home, action: () => navigate('/dashboard') },
-    { label: "Add Funds", icon: DollarSign, action: onAddFundsClick },
-    { label: "Settings", icon: Settings, action: () => navigate('/profile') },
-  ];
-
-  return (
-    <aside className="hidden md:flex flex-col w-80 min-h-full bg-white py-8 px-6 gap-3 shadow-[2px_0_20px_rgba(0,0,0,0.08)]">
-      <div>
-        {nav.map((item) => (
-          <button
-            key={item.label}
-            onClick={item.action}
-            className={`flex items-center gap-4 px-5 py-3 rounded-xl text-base font-medium transition-colors ${
-              active === item.label
-                ? "bg-[#F8F6F6] text-[#2A363B]" // Active state colors updated
-                : "text-gray-600 hover:bg-[#F8F6F6]" // Hover background updated
-            }`}
-          >
-            <item.icon className="w-6 h-6" />
-            {item.label}
-          </button>
-        ))}
-      </div>
-      {/* Saved Section immediately after nav */}
-      <div className="mt-8 pt-8 border-t border-gray-200">
-        <div className="flex items-center gap-2 mb-2 text-[#2A363B] font-semibold"> {/* Text color updated */}
-          <Bookmark className="w-5 h-5 text-[#CF4647]" /> {/* Icon color updated */}
-          Saved
-        </div>
-        {savedBusinesses.length === 0 ? (
-          <div className="text-xs text-gray-400">No saved businesses</div>
-        ) : (
-          <ul className="space-y-1">
-            {savedBusinesses.map(biz => (
-              <li key={biz.id}>
-                <button
-                  className="text-[#CF4647] hover:underline hover:text-[#2A363B] text-sm" // Link colors updated
-                  onClick={() => navigate(`/business/${biz.id}`)}
-                >
-                  {biz.title}
-                </button>
-              </li>
-            ))}
-          </ul>
-        )}
-      </div>
-    </aside>
-  );
-}
 
 export default function InvestorDashboard() {
   const [loading, setLoading] = useState(true);
@@ -167,7 +98,7 @@ export default function InvestorDashboard() {
   const [recentInvestments, setRecentInvestments] = useState<RecentInvestment[]>([]);
   const { openAddFundsModal } = useUser();
   const navigate = useNavigate();
-  const [savedBusinesses, setSavedBusinesses] = useState<{ id: number, title: string }[]>([]);
+  // Removed savedBusinesses state as it's no longer used in Sidebar
 
   // States for dynamic data
   const [portfolioDiversity, setPortfolioDiversity] = useState<Map<string, { investedAmount: number, percentage: number }>>(new Map());
@@ -382,22 +313,7 @@ export default function InvestorDashboard() {
     fetchDashboardData();
   }, [navigate]);
 
-  useEffect(() => {
-    const fetchSaved = async () => {
-      const token = localStorage.getItem('authToken');
-      if (!token) return;
-      try {
-        const response = await fetch('http://localhost:8000/api/saved-businesses/', {
-          headers: { 'Authorization': `Bearer ${token}` }
-        });
-        if (response.ok) {
-          const data = await response.json();
-          setSavedBusinesses(data.map((item: any) => ({ id: item.business.id, title: item.business.title })));
-        }
-      } catch (e) { /* ignore */ }
-    };
-    fetchSaved();
-  }, []);
+  // Removed useEffect for fetching saved businesses as it's no longer needed for the sidebar
 
   const formatCurrency = (amount: number | undefined) => {
     if (amount === undefined || isNaN(amount)) return "$0";
@@ -416,10 +332,10 @@ export default function InvestorDashboard() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-[#F8F6F6] flex items-center justify-center"> {/* Background color updated */}
+      <div className="min-h-screen bg-[#F8F6F6] flex items-center justify-center">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#2A363B] mx-auto mb-4"></div> {/* Spinner color updated */}
-          <p className="text-[#2A363B]">Loading dashboard...</p> {/* Text color updated */}
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#2A363B] mx-auto mb-4"></div>
+          <p className="text-[#2A363B]">Loading dashboard...</p>
         </div>
       </div>
     );
@@ -427,12 +343,12 @@ export default function InvestorDashboard() {
 
   if (error) {
     return (
-      <div className="min-h-screen bg-[#F8F6F6] flex items-center justify-center"> {/* Background color updated */}
+      <div className="min-h-screen bg-[#F8F6F6] flex items-center justify-center">
         <div className="text-center">
-          <p className="text-[#CF4647] mb-4">Error: {error}</p> {/* Error text color updated */}
+          <p className="text-[#CF4647] mb-4">Error: {error}</p>
           <button
             onClick={() => window.location.reload()}
-            className="bg-[#2A363B] text-white px-4 py-2 rounded-lg hover:bg-gray-800" // Button color updated
+            className="bg-[#2A363B] text-white px-4 py-2 rounded-lg hover:bg-gray-800"
           >
             Retry
           </button>
@@ -442,19 +358,19 @@ export default function InvestorDashboard() {
   }
 
   return (
-    <div className="min-h-screen bg-[#F8F6F6] flex flex-col"> {/* Background color updated */}
+    <div className="min-h-screen bg-[#F8F6F6] flex flex-col">
       <div className="flex flex-1">
-        {/* Sidebar */}
-        <Sidebar active="Overview" onAddFundsClick={() => openAddFundsModal()} savedBusinesses={savedBusinesses} />
+        {/* Sidebar Component */}
+        <Sidebar active="Overview" onAddFundsClick={() => openAddFundsModal()} />
 
         {/* Main Content Area */}
-        <main className="flex-1 flex flex-col lg:flex-row lg:gap-8 p-6 lg:p-8">
+        <main className="flex-1 flex flex-col lg:flex-row lg:gap-8 p-6 lg:p-8 ml-80">
           {/* Left Column - Existing Dashboard Content */}
           <section className="flex-1">
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-10 gap-4"> 
-              <h1 className="text-4xl font-bold text-[#2A363B]">Dashboard</h1> {/* Text color updated */}
+              <h1 className="text-4xl font-bold text-[#2A363B]">Dashboard</h1>
               <div className="flex gap-4">
-                <button onClick={() => navigate('/my-investments')} className="bg-[#F8F6F6] text-[#2A363B] px-6 py-3 rounded-full font-semibold shadow-[0_4px_20px_rgba(0,0,0,0.08)] hover:bg-gray-200 transition">View My Investments</button> {/* Button colors updated */}
+                <button onClick={() => navigate('/my-investments')} className="bg-[#F8F6F6] text-[#2A363B] px-6 py-3 rounded-full font-semibold shadow-[0_4px_20px_rgba(0,0,0,0.08)] hover:bg-gray-200 transition">View My Investments</button>
               </div>
             </div>
 
@@ -468,12 +384,12 @@ export default function InvestorDashboard() {
                     className="w-20 h-20 rounded-full object-cover border-4 border-gray-200"
                   />
                 ) : (
-                  <div className="w-20 h-20 bg-[#2A363B] rounded-full flex items-center justify-center text-white text-2xl font-bold"> {/* Background color updated */}
+                  <div className="w-20 h-20 bg-[#2A363B] rounded-full flex items-center justify-center text-white text-2xl font-bold">
                     {userData?.first_name?.charAt(0) || userData?.username?.charAt(0) || "U"}
                   </div>
                 )}
                 <div className="flex-1">
-                  <h2 className="text-2xl font-bold text-[#2A363B] mb-2"> {/* Text color updated */}
+                  <h2 className="text-2xl font-bold text-[#2A363B] mb-2">
                     Welcome back, {userData?.first_name || userData?.username}!
                   </h2>
                   <p className="text-gray-600">Here's your investment portfolio overview</p>
@@ -489,12 +405,12 @@ export default function InvestorDashboard() {
                 onClick={() => navigate('/my-investments')}
               >
                 <div className="flex items-center justify-between mb-4">
-                  <div className="p-3 bg-[#F8F6F6] rounded-xl"> {/* Background color updated */}
-                    <Landmark className="w-6 h-6 text-[#CF4647]" /> {/* Icon color updated */}
+                  <div className="p-3 bg-[#F8F6F6] rounded-xl">
+                    <Landmark className="w-6 h-6 text-[#CF4647]" />
                   </div>
                   <span className="text-sm text-gray-500">Total No. of Investments</span>
                 </div>
-                <div className="text-3xl font-bold text-[#2A363B] mb-2"> {/* Text color updated */}
+                <div className="text-3xl font-bold text-[#2A363B] mb-2">
                   {userData?.total_investments_count || 0}
                 </div>
                 <div className="text-sm text-gray-600">Businesses invested in</div>
@@ -503,12 +419,12 @@ export default function InvestorDashboard() {
               {/* Total money invested */}
               <div className="bg-white rounded-2xl shadow-[0_8px_30px_rgba(0,0,0,0.08)] p-6">
                 <div className="flex items-center justify-between mb-4">
-                  <div className="p-3 bg-[#F8F6F6] rounded-xl"> {/* Background color updated */}
-                    <Coins className="w-6 h-6 text-[#F5D061]" /> {/* Icon color updated */}
+                  <div className="p-3 bg-[#F8F6F6] rounded-xl">
+                    <Coins className="w-6 h-6 text-[#F5D061]" />
                   </div>
                   <span className="text-sm text-gray-500">Total Money Invested</span>
                 </div>
-                <div className="text-3xl font-bold text-[#2A363B] mb-2"> {/* Text color updated */}
+                <div className="text-3xl font-bold text-[#2A363B] mb-2">
                   {formatCurrency(userData?.total_money_invested)}
                 </div>
                 <div className="text-sm text-gray-600">Sum across all investments</div>
@@ -517,12 +433,12 @@ export default function InvestorDashboard() {
               {/* Current fund */}
               <div className="bg-white rounded-2xl shadow-[0_8px_30px_rgba(0,0,0,0.08)] p-6">
                 <div className="flex items-center justify-between mb-4">
-                  <div className="p-3 bg-[#F8F6F6] rounded-xl"> {/* Background color updated */}
-                    <Banknote className="w-6 h-6 text-[#CF4647]" /> {/* Icon color updated */}
+                  <div className="p-3 bg-[#F8F6F6] rounded-xl">
+                    <Banknote className="w-6 h-6 text-[#CF4647]" />
                   </div>
                   <span className="text-sm text-gray-500">Current Fund</span>
                 </div>
-                <div className="text-3xl font-bold text-[#2A363B] mb-2"> {/* Text color updated */}
+                <div className="text-3xl font-bold text-[#2A363B] mb-2">
                   {formatCurrency(userData?.fund)}
                 </div>
                 <div className="text-sm text-gray-600">Your available balance</div>
@@ -532,10 +448,10 @@ export default function InvestorDashboard() {
             {/* Recent Investments Table */}
             <div className="bg-white rounded-2xl shadow-[0_8px_30px_rgba(0,0,0,0.08)] p-8 mb-10">
               <div className="flex items-center justify-between mb-6">
-                <h3 className="text-xl font-bold text-[#2A363B]">Recent Investments (Business & Amount)</h3> {/* Text color updated */}
+                <h3 className="text-xl font-bold text-[#2A363B]">Recent Investments (Business & Amount)</h3>
                 <button
                   onClick={() => navigate("/my-investments")}
-                  className="text-[#CF4647] hover:text-[#2A363B] font-medium" // Button colors updated
+                  className="text-[#CF4647] hover:text-[#2A363B] font-medium"
                 >
                   View All
                 </button>
@@ -544,12 +460,12 @@ export default function InvestorDashboard() {
                 <table className="min-w-full">
                   <thead>
                     <tr className="border-b border-gray-200">
-                      <th className="text-left py-4 px-6 font-semibold text-[#2A363B]">Business</th> {/* Text color updated */}
-                      <th className="text-left py-4 px-6 font-semibold text-[#2A363B]">Category</th> {/* Text color updated */}
-                      <th className="text-left py-4 px-6 font-semibold text-[#2A363B]">Amount Invested</th> {/* Text color updated */}
-                      <th className="text-left py-4 px-6 font-semibold text-[#2A363B]">Share %</th> {/* Text color updated */}
-                      <th className="text-left py-4 px-6 font-semibold text-[#2A363B]">Date</th> {/* Text color updated */}
-                      <th className="text-left py-4 px-6 font-semibold text-[#2A363B]">Entrepreneur</th> {/* Text color updated */}
+                      <th className="text-left py-4 px-6 font-semibold text-[#2A363B]">Business</th>
+                      <th className="text-left py-4 px-6 font-semibold text-[#2A363B]">Category</th>
+                      <th className="text-left py-4 px-6 font-semibold text-[#2A363B]">Amount Invested</th>
+                      <th className="text-left py-4 px-6 font-semibold text-[#2A363B]">Share %</th>
+                      <th className="text-left py-4 px-6 font-semibold text-[#2A363B]">Date</th>
+                      <th className="text-left py-4 px-6 font-semibold text-[#2A363B]">Entrepreneur</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -561,7 +477,7 @@ export default function InvestorDashboard() {
                         >
                           <td className="py-4 px-6">
                             <div 
-                              className="font-medium text-[#2A363B] cursor-pointer hover:text-[#CF4647] hover:underline" // Link colors updated
+                              className="font-medium text-[#2A363B] cursor-pointer hover:text-[#CF4647] hover:underline"
                               onClick={() => navigate(`/business/${investment.business_id}`)}
                             >
                               {investment.business_name}
@@ -569,12 +485,12 @@ export default function InvestorDashboard() {
                           </td>
                           <td className="py-4 px-6">
                             <span
-                              className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-[#F8F6F6] text-[#2A363B]`} // Category tag colors updated
+                              className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-[#F8F6F6] text-[#2A363B]`}
                             >
                               {investment.category_name}
                             </span>
                           </td>
-                          <td className="py-4 px-6 font-semibold text-[#2A363B]"> {/* Text color updated */}
+                          <td className="py-4 px-6 font-semibold text-[#2A363B]">
                             {formatCurrency(investment.amount_invested)}
                           </td>
                           <td className="py-4 px-6 text-gray-600">
@@ -605,7 +521,7 @@ export default function InvestorDashboard() {
               <div className="bg-white rounded-2xl shadow-[0_8px_30px_rgba(0,0,0,0.08)] p-8">
                 <h3 className="text-xl font-bold text-[#2A363B]">
                   Portfolio Diversity by Business Category
-                </h3> {/* Text color updated */}
+                </h3>
                 <div className="space-y-4">
                   {portfolioDiversity.size > 0 ? (
                     Array.from(portfolioDiversity.entries()).map(([category, data]) => (
@@ -615,7 +531,7 @@ export default function InvestorDashboard() {
                           <div className="w-32 h-2 bg-gray-200 rounded-full">
                             <div className="h-2 rounded-full" style={{ width: `${data.percentage}%`, backgroundColor: getCategoryColor(category) }}></div>
                           </div>
-                          <span className="text-sm font-medium text-[#2A363B]">{data.percentage}%</span> {/* Text color updated */}
+                          <span className="text-sm font-medium text-[#2A363B]">{data.percentage}%</span>
                         </div>
                       </div>
                     ))
@@ -626,11 +542,11 @@ export default function InvestorDashboard() {
               </div>
 
               <div className="bg-white rounded-2xl shadow-[0_8px_30px_rgba(0,0,0,0.08)] p-8">
-                <h3 className="text-xl font-bold text-[#2A363B]">Investment Performance</h3> {/* Text color updated */}
+                <h3 className="text-xl font-bold text-[#2A363B]">Investment Performance</h3>
                 <div className="space-y-4">
                   <div className="flex items-center justify-between">
                     <span className="text-gray-600">Average Investment Size</span>
-                    <span className="font-semibold text-[#2A363B]"> {/* Text color updated */}
+                    <span className="font-semibold text-[#2A363B]">
                       {formatCurrency(
                         userData?.total_money_invested && userData.total_investments_count && userData.total_investments_count > 0
                           ? userData.total_money_invested / userData.total_investments_count
@@ -640,19 +556,19 @@ export default function InvestorDashboard() {
                   </div>
                   <div className="flex items-center justify-between">
                     <span className="text-gray-600">Total Investments</span>
-                    <span className="font-semibold text-[#2A363B]"> {/* Text color updated */}
+                    <span className="font-semibold text-[#2A363B]">
                       {userData?.total_investments_count || 0}
                     </span>
                   </div>
                   <div className="flex items-center justify-between">
                     <span className="text-gray-600">Portfolio Companies</span>
-                    <span className="font-semibold text-[#2A363B]"> {/* Text color updated */}
+                    <span className="font-semibold text-[#2A363B]">
                       {uniqueBusinessesCount}
                     </span>
                   </div>
                   <div className="flex items-center justify-between">
                     <span className="text-gray-600">ROI</span>
-                    <span className="font-semibold text-[#2A363B]">{formatPercentage(15)}</span> {/* Text color updated */}
+                    <span className="font-semibold text-[#2A363B]">{formatPercentage(15)}</span>
                   </div>
                 </div>
               </div>
@@ -663,8 +579,8 @@ export default function InvestorDashboard() {
           <aside className="w-full lg:w-96 mt-10 lg:mt-0">
             <div className="bg-white rounded-2xl shadow-[0_8px_30px_rgba(0,0,0,0.08)] p-6">
               <div className="flex items-center gap-3 mb-6">
-                <BookOpen className="w-6 h-6 text-[#CF4647]" /> {/* Icon color updated */}
-                <h3 className="text-xl font-bold text-[#2A363B]">Blogs & Articles</h3> {/* Text color updated */}
+                <BookOpen className="w-6 h-6 text-[#CF4647]" />
+                <h3 className="text-xl font-bold text-[#2A363B]">Blogs & Articles</h3>
               </div>
               <div className="space-y-6">
                 {mockBlogs.map((blog) => (
@@ -675,7 +591,7 @@ export default function InvestorDashboard() {
                 href="https://medium.com/"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="mt-6 w-full text-center text-[#CF4647] hover:text-[#2A363B] font-medium flex items-center justify-center py-2" // Link colors updated
+                className="mt-6 w-full text-center text-[#CF4647] hover:text-[#2A363B] font-medium flex items-center justify-center py-2"
               >
                 View All Articles <ArrowRight className="w-4 h-4 ml-2" />
               </a>

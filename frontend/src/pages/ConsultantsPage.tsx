@@ -1,5 +1,8 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Search, Mail, Phone, MapPin, Star, Filter, X, Send } from 'lucide-react';
+import Sidebar from '../components/Sidebar'; // Import the Sidebar component
+import { useLocation } from 'react-router-dom'; // Import useLocation to get current path
+import { useUser } from '../context/UserContext'; // Assuming you need useUser for openAddFundsModal
 
 interface Consultant {
   id: number;
@@ -42,6 +45,9 @@ const ConsultantsPage: React.FC = () => {
   // Debounced search term
   const [debouncedSearchTerm, setDebouncedSearchTerm] = useState('');
   const [isSearching, setIsSearching] = useState(false);
+
+  const location = useLocation(); // Hook to get current path
+  const { openAddFundsModal } = useUser(); // For passing to Sidebar
 
   // Mock data for consultants
   const mockConsultants: Consultant[] = [
@@ -164,7 +170,7 @@ const ConsultantsPage: React.FC = () => {
         consultant.expertise.some(exp => 
           exp.toLowerCase() === expertiseLower ||
           exp.toLowerCase().includes(expertiseLower) ||
-          expertiseLower.includes(exp.toLowerCase())
+          expertiseLower.includes(expertiseLower)
         )
       );
     }
@@ -211,7 +217,7 @@ const ConsultantsPage: React.FC = () => {
     setSelectedConsultant(consultant);
     setEmailForm({
       to: consultant.email,
-      from: '',
+      from: '', // User's email would go here, perhaps from context
       subject: `Consultation Request - ${consultant.name}`,
       message: `Dear ${consultant.name},\n\nI am interested in your consulting services and would like to discuss potential collaboration.\n\nBest regards,\n[Your Name]`
     });
@@ -230,14 +236,14 @@ const ConsultantsPage: React.FC = () => {
       setTimeout(() => {
         setIsEmailModalOpen(false);
         setEmailSent(false);
-      }, 2000);
-    }, 1500);
+      }, 2000); // Close modal after 2 seconds
+    }, 1500); // Simulate network delay
   };
 
   const closeEmailModal = () => {
     setIsEmailModalOpen(false);
     setSelectedConsultant(null);
-    setEmailSent(false);
+    setEmailSent(false); // Reset email sent status
   };
 
   const clearAllFilters = () => {
@@ -249,28 +255,32 @@ const ConsultantsPage: React.FC = () => {
   const hasActiveFilters = debouncedSearchTerm || selectedExpertise !== 'all';
 
   return (
-    <div className="min-h-screen bg-gray-50 py-8">
-      <div className="w-full px-4 sm:px-6 lg:px-8">
+    <div className="flex min-h-screen bg-[#F8F6F6]"> {/* Apply theme background */}
+      {/* Left Sidebar */}
+      <Sidebar active="Look for Consultants" onAddFundsClick={openAddFundsModal} />
+
+      {/* Main Content Area */}
+      <main className="flex-1 overflow-y-auto px-4 sm:px-6 lg:px-8 py-8 ml-80"> {/* Add ml-80 */}
         {/* Header */}
         <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 mb-4">Find Expert Consultants</h1>
-          <p className="text-lg text-gray-600 max-w-2xl mx-auto">
+          <h1 className="text-5xl max-text-7xl font-bold text-[#2A363B] mt-8 mb-2">Find Expert Consultants</h1> {/* Increased size to text-4xl and bolded */}
+          <p className="text-xl text-gray-600 max-w-2xl mx-auto mb-4"> {/* Increased size to text-xl */}
             Connect with experienced consultants who can help grow your business and provide expert guidance.
           </p>
         </div>
 
         {/* Search and Filters */}
-        <div className="bg-white rounded-lg shadow-md p-6 mb-8">
+        <div className="bg-white rounded-2xl shadow-[0_8px_30px_rgba(0,0,0,0.08)] p-6 mb-8"> {/* Apply theme shadow */}
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
             {/* Search */}
             <div className="relative">
-              <Search className={`absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 ${isSearching ? 'text-blue-500 animate-pulse' : 'text-gray-400'}`} />
+              <Search className={`absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 ${isSearching ? 'text-[#CF4647] animate-pulse' : 'text-gray-400'}`} /> {/* Apply theme accent color */}
               <input
                 type="text"
                 placeholder="Search consultants..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full pl-10 pr-10 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full pl-10 pr-10 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#CF4647] focus:border-transparent" // Apply theme accent color
               />
               {searchTerm && (
                 <button
@@ -287,7 +297,7 @@ const ConsultantsPage: React.FC = () => {
               <select
                 value={selectedExpertise}
                 onChange={(e) => setSelectedExpertise(e.target.value)}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#CF4647] focus:border-transparent" // Apply theme accent color
               >
                 {expertiseOptions.map(option => (
                   <option key={option} value={option}>
@@ -302,7 +312,7 @@ const ConsultantsPage: React.FC = () => {
               <select
                 value={sortBy}
                 onChange={(e) => setSortBy(e.target.value)}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#CF4647] focus:border-transparent" // Apply theme accent color
               >
                 <option value="rating">Highest Rating</option>
                 <option value="experience">Most Experience</option>
@@ -319,7 +329,7 @@ const ConsultantsPage: React.FC = () => {
               {hasActiveFilters && (
                 <button
                   onClick={clearAllFilters}
-                  className="text-sm text-blue-600 hover:text-blue-800 font-medium"
+                  className="text-sm text-[#CF4647] hover:text-[#2A363B] font-medium" // Apply theme accent color
                 >
                   Clear filters
                 </button>
@@ -331,20 +341,20 @@ const ConsultantsPage: React.FC = () => {
         {/* Consultants Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {filteredConsultants.map((consultant) => (
-            <div key={consultant.id} className="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow duration-300">
+            <div key={consultant.id} className="bg-white rounded-2xl shadow-[0_8px_30px_rgba(0,0,0,0.08)] overflow-hidden hover:shadow-lg transition-shadow duration-300"> {/* Apply theme shadow */}
               {/* Consultant Header */}
-              <div className="p-6 border-b border-gray-200">
+              <div className="p-6 border-b border-gray-100"> {/* Lighter border */}
                 <div className="flex items-center space-x-4">
                   <img
                     src={consultant.image}
                     alt={consultant.name}
-                    className="w-16 h-16 rounded-full object-cover"
+                    className="w-16 h-16 rounded-full object-cover border-2 border-gray-100" // Added light border
                   />
                   <div className="flex-1">
-                    <h3 className="text-lg font-semibold text-gray-900">{consultant.name}</h3>
+                    <h3 className="text-lg font-semibold text-[#2A363B]">{consultant.name}</h3> {/* Apply theme text color */}
                     <div className="flex items-center space-x-2 mt-1">
                       <div className="flex items-center">
-                        <Star className="h-4 w-4 text-yellow-400 fill-current" />
+                        <Star className="h-4 w-4 text-[#F5D061] fill-current" /> {/* Apply theme yellow accent */}
                         <span className="ml-1 text-sm text-gray-600">{consultant.rating}</span>
                       </div>
                       <span className="text-sm text-gray-500">•</span>
@@ -357,12 +367,12 @@ const ConsultantsPage: React.FC = () => {
               {/* Consultant Details */}
               <div className="p-6">
                 <div className="mb-4">
-                  <h4 className="text-sm font-medium text-gray-900 mb-2">Expertise</h4>
+                  <h4 className="text-sm font-medium text-[#2A363B] mb-2">Expertise</h4> {/* Apply theme text color */}
                   <div className="flex flex-wrap gap-2">
                     {consultant.expertise.map((skill, index) => (
                       <span
                         key={index}
-                        className="px-3 py-1 bg-blue-100 text-blue-800 text-xs rounded-full"
+                        className="px-3 py-1 bg-[#F8F6F6] text-[#2A363B] text-xs rounded-full" // Soft background, dark text
                       >
                         {skill}
                       </span>
@@ -374,26 +384,26 @@ const ConsultantsPage: React.FC = () => {
 
                 <div className="space-y-2 mb-4">
                   <div className="flex items-center text-sm text-gray-600">
-                    <MapPin className="h-4 w-4 mr-2" />
+                    <MapPin className="h-4 w-4 mr-2 text-[#CF4647]" /> {/* Apply theme accent color */}
                     {consultant.location}
                   </div>
                   <div className="flex items-center text-sm text-gray-600">
-                    <Mail className="h-4 w-4 mr-2" />
+                    <Mail className="h-4 w-4 mr-2 text-[#CF4647]" /> {/* Apply theme accent color */}
                     {consultant.email}
                   </div>
                   <div className="flex items-center text-sm text-gray-600">
-                    <Phone className="h-4 w-4 mr-2" />
+                    <Phone className="h-4 w-4 mr-2 text-[#CF4647]" /> {/* Apply theme accent color */}
                     {consultant.phone}
                   </div>
                 </div>
 
                 <div className="flex items-center justify-between">
-                  <div className="text-lg font-semibold text-gray-900">
+                  <div className="text-lg font-semibold text-[#2A363B]"> {/* Apply theme text color */}
                     ${consultant.hourlyRate}/hr
                   </div>
                   <button
                     onClick={() => handleContact(consultant)}
-                    className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors duration-200"
+                    className="bg-[#CF4647] text-white px-4 py-2 rounded-lg hover:bg-[#2A363B] transition-colors duration-200 shadow-md" // Apply theme accent colors
                   >
                     Contact
                   </button>
@@ -405,15 +415,15 @@ const ConsultantsPage: React.FC = () => {
 
         {/* No Results */}
         {filteredConsultants.length === 0 && (
-          <div className="text-center py-12">
+          <div className="text-center py-12 bg-white rounded-2xl shadow-[0_8px_30px_rgba(0,0,0,0.08)] mt-6"> {/* Apply theme shadow */}
             <div className="text-gray-400 mb-4">
               <Search className="h-16 w-16 mx-auto" />
             </div>
-            <h3 className="text-lg font-medium text-gray-900 mb-2">No consultants found</h3>
+            <h3 className="text-lg font-medium text-[#2A363B] mb-2">No consultants found</h3> {/* Apply theme text color */}
             <p className="text-gray-600">Try adjusting your search criteria or filters.</p>
           </div>
         )}
-      </div>
+      </main>
 
       {/* Email Modal */}
       {isEmailModalOpen && selectedConsultant && (
@@ -428,13 +438,13 @@ const ConsultantsPage: React.FC = () => {
                   className="w-10 h-10 rounded-full object-cover"
                 />
                 <div>
-                  <h3 className="text-lg font-semibold text-gray-900">Contact {selectedConsultant.name}</h3>
+                  <h3 className="text-lg font-semibold text-[#2A363B]">Contact {selectedConsultant.name}</h3> {/* Apply theme text color */}
                   <p className="text-sm text-gray-600">{selectedConsultant.expertise.join(', ')}</p>
                 </div>
               </div>
               <button
                 onClick={closeEmailModal}
-                className="text-gray-400 hover:text-gray-600 transition-colors"
+                className="text-gray-400 hover:text-[#CF4647] transition-colors" // Apply theme accent color
               >
                 <X className="h-6 w-6" />
               </button>
@@ -448,8 +458,8 @@ const ConsultantsPage: React.FC = () => {
                   <input
                     type="email"
                     value={emailForm.to}
-                    onChange={(e) => setEmailForm(prev => ({ ...prev, to: e.target.value }))}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    readOnly // To field should generally be read-only for contact forms
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-50 cursor-not-allowed"
                     required
                   />
                 </div>
@@ -460,7 +470,7 @@ const ConsultantsPage: React.FC = () => {
                     value={emailForm.from}
                     onChange={(e) => setEmailForm(prev => ({ ...prev, from: e.target.value }))}
                     placeholder="your.email@example.com"
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#CF4647] focus:border-transparent" // Apply theme accent color
                     required
                   />
                 </div>
@@ -472,7 +482,7 @@ const ConsultantsPage: React.FC = () => {
                   type="text"
                   value={emailForm.subject}
                   onChange={(e) => setEmailForm(prev => ({ ...prev, subject: e.target.value }))}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#CF4647] focus:border-transparent" // Apply theme accent color
                   required
                 />
               </div>
@@ -483,7 +493,7 @@ const ConsultantsPage: React.FC = () => {
                   value={emailForm.message}
                   onChange={(e) => setEmailForm(prev => ({ ...prev, message: e.target.value }))}
                   rows={8}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#CF4647] focus:border-transparent resize-none" // Apply theme accent color
                   required
                 />
               </div>
@@ -510,7 +520,7 @@ const ConsultantsPage: React.FC = () => {
                 <button
                   type="submit"
                   disabled={isSending || emailSent}
-                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2"
+                  className="px-4 py-2 bg-[#CF4647] text-white rounded-lg hover:bg-[#2A363B] transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2" // Apply theme accent colors
                 >
                   {isSending ? (
                     <>
@@ -538,4 +548,4 @@ const ConsultantsPage: React.FC = () => {
   );
 };
 
-export default ConsultantsPage; 
+export default ConsultantsPage;
